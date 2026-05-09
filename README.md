@@ -119,6 +119,27 @@ Unsigned local builds are often blocked by Gatekeeper the first time. Try in ord
    codesign --force --deep -s - dist/PocketEmulator.app
    ```
 
+#### GitHub Releases download: “app is damaged” / “não pode ser aberto”
+
+Builds from **GitHub Releases** are not notarized. After you unzip, macOS may show a **misleading** message that the app is **damaged** and should be moved to the Trash. That is usually **quarantine** on a downloaded, unsigned app—not real file corruption.
+
+**Fix (pick one):**
+
+1. **Remove the quarantine flag** (most reliable), then open the app from Finder or Terminal.  
+   If you use the **Release zip**, unzip it first, then run `xattr` on the **`.app`** inside (not on the `.zip`):
+   ```bash
+   unzip -q ~/Downloads/PocketEmulator-macos.zip -d ~/Downloads
+   xattr -cr ~/Downloads/PocketEmulator.app
+   open ~/Downloads/PocketEmulator.app
+   ```
+   Change paths if you saved the app elsewhere (for example `~/Desktop/PocketEmulator.app`).
+
+2. **System Settings → Privacy & Security** — after a failed open, use **Open Anyway** when macOS lists PocketEmulator.
+
+3. First launch via **Right‑click → Open** on `PocketEmulator.app` instead of double‑clicking.
+
+For a download-safe experience without these steps, the publisher must use **Apple Developer ID signing + notarization** (paid Apple Developer Program).
+
 From Terminal you can confirm the binary runs:
 
 ```bash

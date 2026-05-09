@@ -64,9 +64,23 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release-artifacts | Out-Null
-          Get-ChildItem -Path "target/release/bundle" -Recurse -File |
-            Where-Object { $_.Extension -in @(".exe", ".msi", ".zip") } |
-            Copy-Item -Destination release-artifacts -Force
+          $bundle = "target/release/bundle"
+          if (Test-Path $bundle) {
+            Get-ChildItem -Path $bundle -Recurse -File -ErrorAction SilentlyContinue |
+              Where-Object { $_.Extension -in @(".exe", ".msi", ".zip") } |
+              ForEach-Object { Copy-Item $_.FullName -Destination release-artifacts -Force }
+          }
+          if (-not (Get-ChildItem release-artifacts -File -ErrorAction SilentlyContinue)) {
+            Get-ChildItem "target/release" -Filter "*.exe" -File -ErrorAction SilentlyContinue |
+              ForEach-Object { Copy-Item $_.FullName -Destination release-artifacts -Force }
+          }
+          if (-not (Get-ChildItem release-artifacts -File -ErrorAction SilentlyContinue)) {
+            Write-Host "target/release listing:"
+            Get-ChildItem "target/release" -ErrorAction SilentlyContinue | Format-Table -AutoSize
+            Write-Host "bundle tree:"
+            if (Test-Path $bundle) { Get-ChildItem $bundle -Recurse -ErrorAction SilentlyContinue | Format-Table -AutoSize }
+            throw "No Windows artifacts collected under release-artifacts"
+          }
 
       - name: Upload CI artifact (macOS)
         if: runner.os == 'macOS'
@@ -80,14 +94,32 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: release-artifacts/*
+          path: release-artifacts
           if-no-files-found: error
 
-      - name: Upload release assets (tag builds)
-        if: startsWith(github.ref, 'refs/tags/')
+  # One release upload avoids races: matrix jobs each calling gh-release can overwrite
+  # the same tag release and drop the other OS assets.
+  github_release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PocketEmulator-macos
+          path: release-upload
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PocketEmulator-windows
+          path: release-upload/windows
+
+      - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            PocketEmulator-macos.zip
-            release-artifacts/*
-          fail_on_unmatched_files: false
+            release-upload/PocketEmulator-macos.zip
+            release-upload/windows/*
+          fail_on_unmatched_files: true

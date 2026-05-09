@@ -2,6 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
+#[cfg(target_os = "macos")]
 use pocketemulator::ui_icon;
 
 pub fn package_current_platform() -> Result<(), Box<dyn std::error::Error>> {

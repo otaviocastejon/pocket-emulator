@@ -271,11 +271,9 @@ pub fn run_window(
                             ));
                         }
                     } else if code == VirtualKeyCode::F6 && pressed {
+                        #[cfg(target_os = "macos")]
                         if let Some(dir) = gb.save_dir() {
-                            #[cfg(target_os = "macos")]
-                            {
-                                let _ = Command::new("open").arg(dir).spawn();
-                            }
+                            let _ = Command::new("open").arg(dir).spawn();
                         }
                     } else if code == VirtualKeyCode::F2 && pressed {
                         if let Some(path) = rfd::FileDialog::new()
