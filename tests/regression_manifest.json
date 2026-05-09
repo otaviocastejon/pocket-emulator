@@ -1,0 +1,20 @@
+[
+  {
+    "rom": "cpu_instrs.gb",
+    "max_frames": 2000,
+    "serial_contains": "Passed",
+    "framebuffer_hash": null
+  },
+  {
+    "rom": "instr_timing.gb",
+    "max_frames": 2000,
+    "serial_contains": "Passed",
+    "framebuffer_hash": null
+  },
+  {
+    "rom": "dmg-acid2.gb",
+    "max_frames": 300,
+    "serial_contains": null,
+    "framebuffer_hash": null
+  }
+]

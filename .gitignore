@@ -1,0 +1,24 @@
+# Rust / Cargo
+/target
+**/target/
+
+# Release packaging output (`cargo run --release -- --package`)
+/dist
+
+# User-owned data (never commit ROMs or battery saves)
+/roms
+/saves
+*.sav
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Local env overrides (templates may use `.env.example`)
+.env
+.env.*
+!.env.example
+
+# Frontend toolchain
+/frontend/node_modules
+/frontend/dist

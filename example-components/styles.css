@@ -1,0 +1,246 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap");
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * PocketEmulator design tokens.
+ * Retro Game Boy identity + modern desktop polish.
+ * All colors in oklch.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+
+  /* Retro accents */
+  --color-lcd: var(--lcd);
+  --color-lcd-deep: var(--lcd-deep);
+  --color-lcd-ink: var(--lcd-ink);
+  --color-dmg-red: var(--dmg-red);
+  --color-dmg-blue: var(--dmg-blue);
+  --color-dmg-yellow: var(--dmg-yellow);
+
+  --font-pixel: "Press Start 2P", system-ui, monospace;
+  --font-display: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --shadow-sm: 0 1px 2px 0 oklch(0.15 0.02 280 / 0.5);
+  --shadow-md: 0 4px 12px -2px oklch(0.1 0.02 280 / 0.55);
+  --shadow-lg: 0 16px 40px -10px oklch(0.05 0.02 280 / 0.7);
+  --shadow-glow-lcd: 0 0 24px -4px oklch(0.78 0.16 145 / 0.5);
+  --shadow-inset-lcd: inset 0 0 30px oklch(0.3 0.08 145 / 0.45),
+    inset 0 0 4px oklch(0.15 0.05 145 / 0.6);
+
+  --gradient-bg: radial-gradient(
+    ellipse at top,
+    oklch(0.22 0.04 280) 0%,
+    oklch(0.16 0.03 280) 60%,
+    oklch(0.12 0.025 280) 100%
+  );
+  --gradient-lcd: linear-gradient(
+    160deg,
+    oklch(0.82 0.13 140) 0%,
+    oklch(0.74 0.14 145) 100%
+  );
+  --gradient-primary: linear-gradient(
+    135deg,
+    oklch(0.62 0.22 350) 0%,
+    oklch(0.55 0.24 340) 100%
+  );
+}
+
+:root {
+  --radius: 0.75rem;
+
+  --background: oklch(0.16 0.025 280);
+  --foreground: oklch(0.96 0.01 280);
+
+  --surface: oklch(0.21 0.025 280);
+  --surface-2: oklch(0.25 0.028 280);
+  --surface-3: oklch(0.3 0.03 280);
+
+  --card: oklch(0.21 0.025 280);
+  --card-foreground: oklch(0.96 0.01 280);
+
+  --popover: oklch(0.21 0.025 280);
+  --popover-foreground: oklch(0.96 0.01 280);
+
+  --primary: oklch(0.62 0.22 350);
+  --primary-foreground: oklch(0.99 0.005 280);
+
+  --secondary: oklch(0.28 0.03 280);
+  --secondary-foreground: oklch(0.96 0.01 280);
+
+  --muted: oklch(0.25 0.028 280);
+  --muted-foreground: oklch(0.7 0.025 280);
+
+  --accent: oklch(0.78 0.16 145);
+  --accent-foreground: oklch(0.18 0.04 145);
+
+  --destructive: oklch(0.62 0.24 27);
+  --destructive-foreground: oklch(0.99 0.005 280);
+
+  --success: oklch(0.74 0.16 150);
+  --success-foreground: oklch(0.16 0.04 150);
+
+  --warning: oklch(0.82 0.16 80);
+  --warning-foreground: oklch(0.2 0.05 80);
+
+  --info: oklch(0.7 0.14 230);
+  --info-foreground: oklch(0.16 0.04 230);
+
+  --border: oklch(0.32 0.025 280);
+  --input: oklch(0.28 0.028 280);
+  --ring: oklch(0.62 0.22 350);
+
+  /* Retro */
+  --lcd: oklch(0.82 0.13 140);
+  --lcd-deep: oklch(0.62 0.14 145);
+  --lcd-ink: oklch(0.22 0.08 145);
+  --dmg-red: oklch(0.62 0.24 27);
+  --dmg-blue: oklch(0.55 0.18 250);
+  --dmg-yellow: oklch(0.85 0.15 90);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--gradient-bg);
+    background-attachment: fixed;
+    color: var(--color-foreground);
+    font-family: var(--font-display);
+    font-feature-settings: "ss01", "cv11";
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: oklch(0.62 0.22 350 / 0.4);
+    color: var(--color-foreground);
+  }
+
+  .font-pixel {
+    font-family: var(--font-pixel);
+    letter-spacing: 0.02em;
+  }
+
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+}
+
+@layer utilities {
+  .lcd-screen {
+    background: var(--gradient-lcd);
+    box-shadow: var(--shadow-inset-lcd), var(--shadow-glow-lcd);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .lcd-screen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+        0deg,
+        transparent 0,
+        transparent 2px,
+        oklch(0.2 0.05 140 / 0.07) 2px,
+        oklch(0.2 0.05 140 / 0.07) 3px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent 0,
+        transparent 2px,
+        oklch(0.2 0.05 140 / 0.07) 2px,
+        oklch(0.2 0.05 140 / 0.07) 3px
+      );
+    pointer-events: none;
+  }
+
+  .surface-card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+  }
+
+  .surface-card-2 {
+    background-color: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .grain::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.025;
+    z-index: 1;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .gradient-text {
+    background: linear-gradient(
+      135deg,
+      oklch(0.96 0.01 280) 0%,
+      oklch(0.78 0.16 145) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  .pixel-shadow {
+    text-shadow: 2px 2px 0 oklch(0.42 0.13 145);
+  }
+
+  .focus-ring {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+}
