@@ -11,6 +11,8 @@ const SHELL_MUTED: [u8; 4] = [162, 155, 178, 255];
 const SHELL_SHADOW: [u8; 4] = [12, 10, 14, 255];
 const SUCCESS_BG: [u8; 4] = [42, 74, 54, 255];
 const SUCCESS_BORDER: [u8; 4] = [84, 160, 104, 255];
+const WARNING_BG: [u8; 4] = [74, 58, 30, 255];
+const WARNING_BORDER: [u8; 4] = [168, 130, 70, 255];
 /// Fast-forward “on” chip — matches launcher primary pink accent.
 const FF_ACTIVE_BG: [u8; 4] = [200, 55, 115, 255];
 const FF_ACTIVE_FG: [u8; 4] = [255, 245, 248, 255];
@@ -18,8 +20,8 @@ const FF_ACTIVE_FG: [u8; 4] = [255, 245, 248, 255];
 /// HUD chrome clips to this width (DMG 160px).
 const HUD_MAX_W: usize = 320;
 
-/// Vertical space reserved under the 160×144 game layer for dock + status.
-pub const HUD_STRIP_HEIGHT: u32 = 76;
+/// Vertical space reserved under the 160×144 game layer for hints + control bar (px at 1× scale).
+pub const HUD_STRIP_HEIGHT: u32 = 52;
 
 #[inline]
 pub const fn framebuffer_height() -> u32 {
@@ -65,44 +67,36 @@ pub fn draw_controls_hud(
 
     let w = width.min(HUD_MAX_W);
     let strip_top = game_height;
-    apply_screen_fx(frame, width, game_height, w, rendered_frames);
 
-    // Top title bar (inside the pixel scene for a custom-window look).
-    fill_rect(frame, width, buffer_height, 0, 0, w, 12, [24, 26, 38, 255]);
-    fill_rect(frame, width, buffer_height, 0, 11, w, 1, SHELL_BORDER);
-    fill_rect(frame, width, buffer_height, 4, 4, 3, 3, [232, 72, 66, 255]);
-    fill_rect(frame, width, buffer_height, 9, 4, 3, 3, [225, 185, 70, 255]);
-    fill_rect(frame, width, buffer_height, 14, 4, 3, 3, [82, 192, 105, 255]);
-    draw_text(
-        frame,
-        width,
-        buffer_height,
-        24,
-        4,
-        "NOW PLAYING - POCKETEMULATOR",
-        SHELL_MUTED,
-        SHELL_SHADOW,
-        1,
+    // Control bar sits at the bottom of the buffer; everything above it in the strip is hints/status.
+    let bar_h = 34usize.min(buffer_height.saturating_sub(strip_top));
+    let bar_y = buffer_height.saturating_sub(bar_h);
+    debug_assert!(
+        bar_y >= strip_top,
+        "HUD strip too small — raise HUD_STRIP_HEIGHT"
     );
 
-    // Bezel around game viewport.
-    fill_rect(frame, width, buffer_height, 0, 12, w, 1, SHELL_BORDER);
-    fill_rect(frame, width, buffer_height, 0, game_height.saturating_sub(1), w, 1, SHELL_BORDER);
-    fill_rect(frame, width, buffer_height, 0, 12, 1, game_height.saturating_sub(11), SHELL_BORDER);
+    // Full chrome background under the game (does not touch gameplay rows).
     fill_rect(
         frame,
         width,
         buffer_height,
-        w.saturating_sub(1),
-        12,
+        0,
+        strip_top,
+        w,
+        buffer_height.saturating_sub(strip_top),
+        SHELL_BG,
+    );
+    fill_rect(
+        frame,
+        width,
+        buffer_height,
+        0,
+        strip_top,
+        w,
         1,
-        game_height.saturating_sub(11),
         SHELL_BORDER,
     );
-
-    // Full shell under gameplay.
-    fill_rect(frame, width, buffer_height, 0, strip_top, w, buffer_height.saturating_sub(strip_top), SHELL_BG);
-    fill_rect(frame, width, buffer_height, 0, strip_top, w, 1, SHELL_BORDER);
 
     let fg = SHELL_FG;
     let muted = SHELL_MUTED;
@@ -115,93 +109,138 @@ pub fn draw_controls_hud(
         chip_bg
     };
     let ff_text = if fast_forward_held { FF_ACTIVE_FG } else { fg };
-    let ff = if fast_forward_held { "FF ON" } else { "FF OFF" };
-    let autosave = if autosave_enabled { "AUTO ON" } else { "AUTO OFF" };
+    let ff = if fast_forward_held { "ON" } else { "OFF" };
+    let autosave = if autosave_enabled {
+        "AUTO ON"
+    } else {
+        "AUTO OFF"
+    };
 
-    // Dock panel.
-    let dock_y = strip_top + 6;
-    let dock_h = 30usize.min(buffer_height.saturating_sub(dock_y + 2));
-    fill_rect(frame, width, buffer_height, 4, dock_y, w.saturating_sub(8), dock_h, [27, 30, 44, 255]);
-    fill_rect(frame, width, buffer_height, 4, dock_y, w.saturating_sub(8), 1, SHELL_BORDER);
-    fill_rect(
-        frame,
-        width,
-        buffer_height,
-        4,
-        dock_y + dock_h.saturating_sub(1),
-        w.saturating_sub(8),
-        1,
-        SHELL_BORDER,
-    );
+    fill_rect(frame, width, buffer_height, 0, bar_y, w, bar_h, SHELL_BG);
+    fill_rect(frame, width, buffer_height, 0, bar_y, w, 1, SHELL_BORDER);
 
-    let r1 = dock_y + 9;
-    draw_chip(frame, width, buffer_height, 10, r1, 24, 12, chip_bg, chip_border, "PA", fg, shadow);
-    draw_chip(frame, width, buffer_height, 38, r1, 24, 12, SUCCESS_BG, SUCCESS_BORDER, "SV", fg, shadow);
-    draw_chip(frame, width, buffer_height, 66, r1, 24, 12, chip_bg, chip_border, "LD", fg, shadow);
-    draw_chip(frame, width, buffer_height, 94, r1, 24, 12, ff_chip_bg, chip_border, "FF", ff_text, shadow);
-    draw_chip(frame, width, buffer_height, 122, r1, 24, 12, chip_bg, chip_border, "CFG", fg, shadow);
+    // Row 1 — fits 160px: [F5 SAVE][F9 LOAD][ESC]
+    let r1 = bar_y + 3;
+    let chip_h = 11;
     draw_chip(
         frame,
         width,
         buffer_height,
-        150,
+        3,
         r1,
-        24,
-        12,
-        [74, 38, 42, 255],
-        [160, 78, 88, 255],
-        "PWR",
-        [250, 98, 116, 255],
+        50,
+        chip_h,
+        chip_bg,
+        chip_border,
+        "F5 SAVE",
+        fg,
+        shadow,
+    );
+    draw_chip(
+        frame,
+        width,
+        buffer_height,
+        55,
+        r1,
+        50,
+        chip_h,
+        chip_bg,
+        chip_border,
+        "F9 LOAD",
+        fg,
+        shadow,
+    );
+    draw_chip(
+        frame,
+        width,
+        buffer_height,
+        107,
+        r1,
+        50,
+        chip_h,
+        chip_bg,
+        chip_border,
+        "ESC",
+        fg,
         shadow,
     );
 
-    let status = truncate_text(&hud_ascii(status_line), (w.saturating_sub(10)) / 4);
-    let status_y = dock_y + dock_h + 8;
-    draw_text(frame, width, buffer_height, 8, status_y, &status, muted, shadow, 1);
-    draw_text(frame, width, buffer_height, 122, status_y, autosave, muted, shadow, 1);
-    draw_text(frame, width, buffer_height, 150, status_y, ff, muted, shadow, 1);
-}
+    // Row 2 — [fast-forward][autosave] only (no overlap with row 1)
+    let r2 = bar_y + 3 + chip_h + 2;
+    let ff_label = format!("SPC {ff}");
+    draw_chip(
+        frame,
+        width,
+        buffer_height,
+        3,
+        r2,
+        76,
+        chip_h,
+        ff_chip_bg,
+        chip_border,
+        &ff_label,
+        ff_text,
+        shadow,
+    );
+    draw_chip(
+        frame,
+        width,
+        buffer_height,
+        81,
+        r2,
+        76,
+        chip_h,
+        if autosave_enabled {
+            SUCCESS_BG
+        } else {
+            WARNING_BG
+        },
+        if autosave_enabled {
+            SUCCESS_BORDER
+        } else {
+            WARNING_BORDER
+        },
+        autosave,
+        fg,
+        shadow,
+    );
 
-fn apply_screen_fx(frame: &mut [u8], width: usize, game_height: usize, w: usize, rendered_frames: u64) {
-    if width == 0 || game_height == 0 {
-        return;
-    }
-    let cx = (w / 2) as i32;
-    let cy = (game_height / 2) as i32;
-    let tick = (rendered_frames & 1) as usize;
-    for y in 12..game_height.saturating_sub(1) {
-        for x in 1..w.saturating_sub(1) {
-            let i = (y * width + x) * 4;
-            let mut r = frame[i] as i32;
-            let mut g = frame[i + 1] as i32;
-            let mut b = frame[i + 2] as i32;
+    // Short hint above the bar (rotate; uses only glyphs we define)
+    let hint = match (rendered_frames / 120) % 4 {
+        0 => "F12 SHOT",
+        1 => "F2  ROM",
+        2 => "TAB HUD",
+        _ => "F6 FOLDER",
+    };
 
-            // DMG-like green tint mix.
-            let luma = (r * 30 + g * 59 + b * 11) / 100;
-            r = (luma * 62) / 100;
-            g = (luma * 125) / 100;
-            b = (luma * 52) / 100;
+    let status = truncate_text(&hud_ascii(status_line), (w.saturating_sub(6)) / 4);
+    let status_y = strip_top + 2;
+    let hint_y = strip_top + 12;
+    let hint_y = hint_y.min(bar_y.saturating_sub(8));
 
-            // Pixel matrix texture.
-            if (x + tick).is_multiple_of(2) || (y + tick).is_multiple_of(2) {
-                r = (r * 92) / 100;
-                g = (g * 92) / 100;
-                b = (b * 92) / 100;
-            }
-
-            // Gentle vignette.
-            let dx = (x as i32 - cx).abs();
-            let dy = (y as i32 - cy).abs();
-            let v = (dx * 2 + dy * 3) / 7;
-            let shade = (v / 7).min(24);
-            r = (r - shade).max(0);
-            g = (g - shade).max(0);
-            b = (b - shade).max(0);
-
-            frame[i] = r as u8;
-            frame[i + 1] = g as u8;
-            frame[i + 2] = b as u8;
-        }
+    draw_text(
+        frame,
+        width,
+        buffer_height,
+        3,
+        status_y,
+        &status,
+        muted,
+        shadow,
+        1,
+    );
+    if hint_y > strip_top && hint_y + 6 < bar_y {
+        draw_text(
+            frame,
+            width,
+            buffer_height,
+            3,
+            hint_y,
+            hint,
+            muted,
+            shadow,
+            1,
+        );
     }
 }
 

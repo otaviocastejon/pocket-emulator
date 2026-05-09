@@ -14,11 +14,6 @@ pub fn data_dir() -> Option<PathBuf> {
     project_dirs().map(|d| d.data_local_dir().to_path_buf())
 }
 
-/// Optional `launcher_theme.toml` (colors, spacing, radii). Merged over built-in defaults.
-pub fn launcher_theme_config_path() -> Option<PathBuf> {
-    project_dirs().map(|d| d.config_dir().join("launcher_theme.toml"))
-}
-
 pub fn ensure_data_dirs() -> io::Result<()> {
     let Some(base) = data_dir() else {
         return Ok(());

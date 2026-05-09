@@ -1,0 +1,82 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            artifact_name: PocketEmulator-macos
+          - os: windows-latest
+            artifact_name: PocketEmulator-windows
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+
+      - name: Build Tauri bundle
+        run: npm --prefix frontend exec -- tauri build --config "${{ github.workspace }}/tauri.conf.json" --no-sign
+
+      - name: Prepare macOS artifact
+        if: runner.os == 'macOS'
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            target/release/bundle/macos/PocketEmulator.app \
+            PocketEmulator-macos.zip
+
+      - name: Prepare Windows artifacts
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release-artifacts | Out-Null
+          Get-ChildItem -Path "target/release/bundle" -Recurse -File |
+            Where-Object { $_.Extension -in @(".exe", ".msi", ".zip") } |
+            Copy-Item -Destination release-artifacts -Force
+
+      - name: Upload CI artifact (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: PocketEmulator-macos.zip
+
+      - name: Upload CI artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: release-artifacts/*
+          if-no-files-found: error
+
+      - name: Upload release assets (tag builds)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            PocketEmulator-macos.zip
+            release-artifacts/*
+          fail_on_unmatched_files: false

@@ -1,5 +1,5 @@
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::state::{load_state, save_state};
@@ -31,16 +31,6 @@ pub fn note_recent_rom(path: &Path) -> io::Result<()> {
         state.profiles.push(profile);
     }
     save_state(&state)
-}
-
-pub fn recent_roms_existing() -> Vec<PathBuf> {
-    let state = load_state();
-    state
-        .recent_roms
-        .into_iter()
-        .map(|r| r.path)
-        .filter(|p| p.exists())
-        .collect::<Vec<_>>()
 }
 
 pub fn recent_games_existing() -> Vec<RecentRom> {

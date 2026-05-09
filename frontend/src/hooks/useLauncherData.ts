@@ -125,25 +125,6 @@ export function useLauncherData() {
     }
   }
 
-  async function saveScale(scale: number): Promise<boolean> {
-    if (!selectedRom) return false;
-    try {
-      await tauriApi.saveProfile({
-        path: selectedRom.path,
-        scale,
-        controlsEnv: selectedRom.profile.controlsEnv,
-        autosaveEnabled: selectedRom.profile.autosaveEnabled,
-        videoFilter: selectedRom.profile.videoFilter,
-        audioMode: selectedRom.profile.audioMode,
-      });
-      await refreshRoms();
-      return true;
-    } catch (e) {
-      setError(String(e));
-      return false;
-    }
-  }
-
   async function saveSettings(input: {
     scale: number;
     autosaveEnabled: boolean;
@@ -193,7 +174,6 @@ export function useLauncherData() {
     addRom,
     launch,
     toggleFavorite,
-    saveScale,
     saveSettings,
     openCatalog,
     refreshSaveFiles,

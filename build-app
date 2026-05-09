@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FRONTEND_DIR="$ROOT_DIR/frontend"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  ./build-app macos
+  ./build-app windows
+
+Builds the Tauri app and copies the final artifact to repo root:
+  - macos   -> ./PocketEmulator.app
+  - windows -> ./PocketEmulator.exe (or installer .exe fallback)
+EOF
+}
+
+if [[ $# -ne 1 ]]; then
+  usage
+  exit 1
+fi
+
+platform="$1"
+case "$platform" in
+  macos|windows) ;;
+  *)
+    echo "Unsupported platform: $platform"
+    usage
+    exit 1
+    ;;
+esac
+
+echo "Building for $platform..."
+
+if [[ "$platform" == "macos" ]]; then
+  npm --prefix "$FRONTEND_DIR" exec -- tauri build --config "$ROOT_DIR/tauri.conf.json"
+
+  shopt -s nullglob
+  apps=("$ROOT_DIR"/target/release/bundle/macos/*.app)
+  shopt -u nullglob
+  if [[ ${#apps[@]} -eq 0 ]]; then
+    echo "No .app artifact found under target/release/bundle/macos"
+    exit 1
+  fi
+
+  rm -rf "$ROOT_DIR/PocketEmulator.app"
+  cp -R "${apps[0]}" "$ROOT_DIR/PocketEmulator.app"
+  echo "Created: $ROOT_DIR/PocketEmulator.app"
+  exit 0
+fi
+
+# windows
+if [[ "$(uname -s)" != MINGW* && "$(uname -s)" != MSYS* && "$(uname -s)" != CYGWIN* && "$(uname -s)" != "Windows_NT" ]]; then
+  echo "Windows build is intended to run on Windows host."
+  echo "If you still want to try cross-compile, install a Windows Rust target + linker and adapt this script."
+  exit 1
+fi
+
+npm --prefix "$FRONTEND_DIR" exec -- tauri build --config "$ROOT_DIR/tauri.conf.json"
+
+shopt -s globstar nullglob
+exe_candidates=(
+  "$ROOT_DIR"/src-tauri/target/**/bundle/**/*.exe
+  "$ROOT_DIR"/target/**/bundle/**/*.exe
+)
+shopt -u globstar nullglob
+
+if [[ ${#exe_candidates[@]} -eq 0 ]]; then
+  echo "No Windows .exe artifact found under target bundle output."
+  exit 1
+fi
+
+rm -f "$ROOT_DIR/PocketEmulator.exe"
+cp "${exe_candidates[0]}" "$ROOT_DIR/PocketEmulator.exe"
+echo "Created: $ROOT_DIR/PocketEmulator.exe"

@@ -44,7 +44,7 @@ The emulator now keeps user data in an app-data folder (per OS user), not mixed 
 - **Windows:** `%LOCALAPPDATA%\com\pocketemulator\pocketemulator`
 
 Inside that folder:
-- `state.json` — recently played ROMs (used by launcher memory)
+- `state.json` — ROM metadata (last played, per-game profiles)
 - `saves/*.sav` — battery-backed saves, one per ROM path (hashed file names)
 
 Battery-backed SRAM is loaded on startup and saved on exit.
@@ -54,16 +54,16 @@ Extra save controls:
 - `F9` = reload `.sav` from disk
 - `F2` = pick another ROM and switch game
 - `F6` = open save folder in Finder
-- autosave every ~10 seconds while running (can be toggled in launcher UI)
+- autosave every ~10 seconds while running (can be toggled in `Settings`)
 - crash recovery fallback reads `.sav.bak` if `.sav` is unavailable
 - CLI override: `--no-autosave`
 
 ## Launcher UX
 
 - `cargo run --release -- --menu` opens the launcher directly
-- `My Games` shows recent ROMs from `state.json`
+- `My Games` lists ROMs discovered in your library (DMG/GBC only)
 - click a game in `My Games` to launch it immediately
-- favorites (`★`) and search are available in `My Games`
+- `Saves` tab lets you list, export, and delete `.sav` / `.sav.bak` files
 - `Settings` tab stores per-game profile values (scale, autosave, controls, video/audio mode)
 - profile values are loaded automatically when launching a known game
 
@@ -77,6 +77,16 @@ Extra save controls:
   - `POCKETEMU_LINK_PEER=127.0.0.1:7002` (legacy: `MYGAMEBOY_LINK_PEER`)
 
 ## Packaging / executable
+
+One-command build helper:
+
+```bash
+./build-app macos
+# or
+./build-app windows
+```
+
+This builds Tauri and copies the final artifact to repository root (`PocketEmulator.app` or `PocketEmulator.exe`).
 
 Create an easy-to-run binary in `dist/`:
 
@@ -141,7 +151,7 @@ Run `cargo test` — tests skip automatically if the ROM file is missing.
 - `src/cpu/` — SM83 CPU (generated opcode tables in `opcodes_gen.rs` / `cb_gen.rs`)
 - `src/ppu.rs` — LCD timing + scanline renderer
 - `src/cartridge/` — MBC0 / MBC1 / MBC3 / MBC5 + `.sav` loading
-- `src/frontend/desktop.rs` — window + input
+- `src/frontend/desktop/mod.rs` — native game window + HUD + input
 
 Regenerate opcode tables after editing generators:
 

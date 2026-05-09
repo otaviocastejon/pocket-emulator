@@ -29,9 +29,3 @@ export type SaveFileSummary = {
   modifiedUnixSecs: number | null;
 };
 
-export const TABS: Array<{ key: TabKey; label: string }> = [
-  { key: "games", label: "My Games" },
-  { key: "saves", label: "Saves" },
-  { key: "settings", label: "Settings" },
-  { key: "getroms", label: "Get ROMs" },
-];
