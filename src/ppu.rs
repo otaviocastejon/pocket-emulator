@@ -361,11 +361,13 @@ impl Ppu {
             if self.cgb_mode {
                 for x in 0..LCD_WIDTH {
                     let px = (x as u8).wrapping_add(self.scx);
-                    let tile_x = px / 8;
-                    let tile_y = py / 8;
+                    // Tile map is 32×32; indices wrap (Pan Docs). Keeps map_off ≤ 0x1FFF so
+                    // attribute reads at 0x2000 + map_off stay inside VRAM.
+                    let tile_x = (px as u16 / 8) % 32;
+                    let tile_y = (py as u16 / 8) % 32;
                     let fine_x = px % 8;
                     let fine_y = py % 8;
-                    let map_idx = tile_y as u16 * 32 + tile_x as u16;
+                    let map_idx = tile_y * 32 + tile_x;
                     let map_off = (tile_map_base + map_idx) as usize;
                     let tile_id = self.vram[map_off];
                     let attr = self.vram[0x2000 + map_off];
@@ -397,11 +399,11 @@ impl Ppu {
             } else {
                 for x in 0..LCD_WIDTH {
                     let px = (x as u8).wrapping_add(self.scx);
-                    let tile_x = px / 8;
-                    let tile_y = py / 8;
+                    let tile_x = (px as u16 / 8) % 32;
+                    let tile_y = (py as u16 / 8) % 32;
                     let fine_x = px % 8;
                     let fine_y = py % 8;
-                    let map_idx = tile_y as u16 * 32 + tile_x as u16;
+                    let map_idx = tile_y * 32 + tile_x;
                     let tile_id = self.vram[(tile_map_base + map_idx) as usize];
                     let tile_addr = if unsigned {
                         0x8000u16.saturating_add(tile_id as u16 * 16 + fine_y as u16 * 2)
@@ -443,11 +445,11 @@ impl Ppu {
                         continue;
                     }
                     let px = (x as u8).wrapping_sub(wx0);
-                    let tile_x = px / 8;
-                    let tile_y = win_y / 8;
+                    let tile_x = (px as u16 / 8) % 32;
+                    let tile_y = (win_y as u16 / 8) % 32;
                     let fine_x = px % 8;
                     let fine_y = win_y % 8;
-                    let map_idx = tile_y as u16 * 32 + tile_x as u16;
+                    let map_idx = tile_y * 32 + tile_x;
                     let map_off = (tile_map_base + map_idx) as usize;
                     let tile_id = self.vram[map_off];
                     let attr = self.vram[0x2000 + map_off];
@@ -483,11 +485,11 @@ impl Ppu {
                         continue;
                     }
                     let px = (x as u8).wrapping_sub(wx0);
-                    let tile_x = px / 8;
-                    let tile_y = win_y / 8;
+                    let tile_x = (px as u16 / 8) % 32;
+                    let tile_y = (win_y as u16 / 8) % 32;
                     let fine_x = px % 8;
                     let fine_y = win_y % 8;
-                    let map_idx = tile_y as u16 * 32 + tile_x as u16;
+                    let map_idx = tile_y * 32 + tile_x;
                     let tile_id = self.vram[(tile_map_base + map_idx) as usize];
                     let tile_addr = if unsigned {
                         0x8000u16.saturating_add(tile_id as u16 * 16 + fine_y as u16 * 2)

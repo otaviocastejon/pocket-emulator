@@ -1,186 +1,125 @@
 # PocketEmulator
 
-A work-in-progress **DMG (original Game Boy)** emulator written in Rust, with a `pixels` + `winit` desktop UI and a stubbed APU (no sound yet).
+## About
 
-## Build
+**PocketEmulator** is a **Game Boy (DMG) and Game Boy Color (GBC)** emulator. You get a **desktop launcher** to manage your ROM library, profiles, and save files, plus a **native gameplay window** with scaling, filters, and keyboard controls. The CPU and PPU are emulated in Rust; **audio is not implemented yet** (APU stubbed).
+
+This project **does not** emulate Game Boy Advance.
+
+---
+
+## Tech stack
+
+| Layer | Details |
+|--------|---------|
+| **Core emulator** | Rust — CPU (SM83), PPU, cartridges (MBC0/1/3/5), timers, serial (experimental link). |
+| **Gameplay window** | `pixels` + `winit` — framebuffer, input, HUD. |
+| **Launcher shell** | **Tauri 2** — desktop WebView hosting the UI. |
+| **Launcher UI** | **React**, **TypeScript**, **Vite**. |
+| **IPC** | Tauri commands between the UI and Rust (ROM library, settings, saves). |
+| **Packaging** | Tauri bundler — `.app` on macOS, NSIS / `.exe` on Windows. |
+
+---
+
+## Quick start (downloads)
+
+Prebuilt builds are attached to **[GitHub Releases](https://github.com/otaviocastejon/pocket-emulator/releases)** for **macOS** and **Windows**. Pick the latest version and download the artifact for your OS.
+
+### macOS
+
+1. Download **`PocketEmulator-macos.zip`** from the release and unzip it so **`PocketEmulator.app`** exists (for example in **`~/Downloads`**).
+2. Follow **[Run the downloaded app on macOS](#run-the-downloaded-app-on-macos)** below — you usually need **`xattr`** once because the app is not signed/notarized.
+3. Later launches: double‑click **`PocketEmulator.app`** in Finder. Optional CLI: `open ~/Downloads/PocketEmulator.app` or run **`PocketEmulator.app/Contents/MacOS/PocketEmulator`** for flags (e.g. `--menu`).
+
+### Run the downloaded app on macOS
+
+Downloads from GitHub are **quarantined** and **unsigned**, so Gatekeeper may block a normal double‑click or show **“damaged”**—that is usually quarantine, not a broken file.
+
+If **`PocketEmulator.app`** is in your **Downloads** folder, open **Terminal** and run:
+
+```bash
+xattr -cr ~/Downloads/PocketEmulator.app
+open ~/Downloads/PocketEmulator.app
+```
+
+- **`xattr -cr`** clears extended attributes (including quarantine) on the app bundle so macOS will allow it to run.
+- **`open`** starts the app.
+
+If the `.app` lives somewhere else, replace the path (for example `~/Desktop/PocketEmulator.app`). After the first successful launch, you can open it from Finder like any app.
+
+**Alternatives if you prefer the GUI:** **System Settings → Privacy & Security → Open Anyway**, or **right‑click the app → Open**.
+
+### Windows
+
+1. Download the **Windows** asset from the same release page (installer **`.exe`** from NSIS and/or portable **`PocketEmulator.exe`**, depending on what was uploaded).
+2. Run the **installer** and follow the prompts, **or** run **`PocketEmulator.exe`** directly.
+3. If SmartScreen warns about an **unknown publisher**, choose **More info → Run anyway** (unsigned builds).
+
+---
+
+## Using the app
+
+- The **launcher** opens by default: **My Games** (library), **Saves**, **Settings**, **Get ROMs** (catalog link).
+- Supported ROM types: **`.gb`** / **`.gbc`** only.
+- **Gameplay:** keyboard — D‑Pad arrows, **Z** (A), **X** (B), **Enter** (Start), **Shift** (Select), **Space** (fast‑forward hold), **Esc** quit. **F5** quick save, **F9** reload save, **F2** pick another ROM, **F12** screenshot (PPM in app data).
+
+### Where data is stored
+
+| OS | Path |
+|----|------|
+| **macOS** | `~/Library/Application Support/com/pocketemulator/pocketemulator` |
+| **Windows** | `%LOCALAPPDATA%\com\pocketemulator\pocketemulator` |
+| **Linux** (from source) | `~/.local/share/com/pocketemulator/pocketemulator` |
+
+There you’ll find `state.json`, `saves/*.sav`, and screenshots.
+
+---
+
+## Building from source
+
+### Prerequisites
+
+- **Rust** (stable), **Node.js 20+**, repo cloned locally.
+
+### Launcher + bundled app (recommended)
+
+```bash
+npm ci --prefix frontend
+./build-app macos      # macOS → ./PocketEmulator.app
+./build-app windows    # run on Windows → PocketEmulator.exe at repo root
+```
+
+### CLI only (game window / headless flows)
 
 ```bash
 cargo build --release
-```
-
-## Run
-
-```bash
 cargo run --release -- path/to/game.gb
+cargo run --release -- --menu          # open the launcher flow (see src/main.rs)
 ```
 
-- `--scale N` — integer window scale (default `4`)
-- `--info` — print cartridge header from a ROM and exit
-- `--no-autosave` — disable periodic autosave
-- `--package` — build and copy runnable binary to `dist/`
-- `--regression` — run regression suite from `tests/regression_manifest.json`
-- `--regression-dir PATH` — folder containing regression ROMs (default `roms/regression`)
+Common flags: `--scale N` (default `4`), `--info`, `--no-autosave`, `--package` (copy binary to `dist/`), `--regression`.
 
-### Controls (keyboard)
+---
 
-| Game Boy | Key        |
-|----------|------------|
-| D-Pad    | Arrow keys |
-| A        | Z          |
-| B        | X          |
-| Start    | Enter      |
-| Select   | Shift      |
-| Fast-forward (hold) | Space |
-| Rewind SRAM snapshot | F7 |
-| Screenshot (PPM) | F12 |
-| Quit     | Esc        |
+## Development
 
-## ROM history + save storage
+- **Test ROMs (optional):** place open ROMs under `roms/tests/` (gitignored). See [Blargg’s GB tests](https://github.com/retrio/gb-test-roms), [dmg-acid2](https://github.com/mattcurrie/dmg-acid2). Run `cargo test`.
+- **Opcode tables:** after editing generators:
+  ```bash
+  python3 tools/gen_cpu_opcodes.py
+  python3 tools/gen_cb.py
+  ```
 
-The emulator now keeps user data in an app-data folder (per OS user), not mixed into project files:
+### Layout
 
-- **macOS:** `~/Library/Application Support/com/pocketemulator/pocketemulator`
-- **Linux:** `~/.local/share/com/pocketemulator/pocketemulator`
-- **Windows:** `%LOCALAPPDATA%\com\pocketemulator\pocketemulator`
+- `src/cpu/` — SM83 core (`opcodes_gen.rs`, `cb_gen.rs`)
+- `src/ppu.rs` — LCD / tiles / sprites
+- `src/cartridge/` — MBC + `.sav`
+- `src/frontend/desktop/` — native game window
+- `frontend/` — launcher UI
 
-Inside that folder:
-- `state.json` — ROM metadata (last played, per-game profiles)
-- `saves/*.sav` — battery-backed saves, one per ROM path (hashed file names)
-
-Battery-backed SRAM is loaded on startup and saved on exit.
-
-Extra save controls:
-- `F5` = write `.sav` immediately
-- `F9` = reload `.sav` from disk
-- `F2` = pick another ROM and switch game
-- `F6` = open save folder in Finder
-- autosave every ~10 seconds while running (can be toggled in `Settings`)
-- crash recovery fallback reads `.sav.bak` if `.sav` is unavailable
-- CLI override: `--no-autosave`
-
-## Launcher UX
-
-- `cargo run --release -- --menu` opens the launcher directly
-- `My Games` lists ROMs discovered in your library (DMG/GBC only)
-- click a game in `My Games` to launch it immediately
-- `Saves` tab lets you list, export, and delete `.sav` / `.sav.bak` files
-- `Settings` tab stores per-game profile values (scale, autosave, controls, video/audio mode)
-- profile values are loaded automatically when launching a known game
-
-## Cheats, screenshots, and experimental link play
-
-- Optional cheats file: place `<romname>.cht` beside ROM, one patch per line:
-  - `ADDR:VALUE` in hex (example `C000:42`)
-- `F12` writes a screenshot as `P6 .ppm` into app data `screenshots/`
-- Experimental UDP serial link (advanced). Prefer `POCKETEMU_*`; `MYGAMEBOY_*` still works:
-  - `POCKETEMU_LINK_BIND=127.0.0.1:7001` (legacy: `MYGAMEBOY_LINK_BIND`)
-  - `POCKETEMU_LINK_PEER=127.0.0.1:7002` (legacy: `MYGAMEBOY_LINK_PEER`)
-
-## Packaging / executable
-
-One-command build helper:
-
-```bash
-./build-app macos
-# or
-./build-app windows
-```
-
-This builds Tauri and copies the final artifact to repository root (`PocketEmulator.app` or `PocketEmulator.exe`).
-
-Create an easy-to-run binary in `dist/`:
-
-```bash
-cargo run --release -- --package
-```
-
-That produces a native executable for your current OS.
-
-On macOS, it now also creates a **double-clickable app bundle**:
-- `dist/PocketEmulator.app`
-- plus raw binary: `dist/pocketemulator`
-- app icon is always bundled from embedded `assets/icon.png` bytes
-- packaging enforces `.icns` generation (`PocketEmulator.icns`) and fails if it cannot be created
-
-You can launch it from Finder like any regular app.
-
-### macOS: "PocketEmulator can't be opened"
-
-Unsigned local builds are often blocked by Gatekeeper the first time. Try in order:
-
-1. **Right‑click** `PocketEmulator.app` → **Open** → confirm **Open** (only needed once).
-2. **System Settings → Privacy & Security** — scroll down and click **Open Anyway** if macOS shows a block for this app.
-3. If you copied the `.app` from a download or another disk, clear quarantine, then open again:
-   ```bash
-   xattr -cr dist/PocketEmulator.app
-   ```
-4. Re-sign the bundle (also runs automatically after `--package` when `codesign` is available):
-   ```bash
-   codesign --force --deep -s - dist/PocketEmulator.app
-   ```
-
-#### GitHub Releases download: “app is damaged” / “não pode ser aberto”
-
-Builds from **GitHub Releases** are not notarized. After you unzip, macOS may show a **misleading** message that the app is **damaged** and should be moved to the Trash. That is usually **quarantine** on a downloaded, unsigned app—not real file corruption.
-
-**Fix (pick one):**
-
-1. **Remove the quarantine flag** (most reliable), then open the app from Finder or Terminal.  
-   If you use the **Release zip**, unzip it first, then run `xattr` on the **`.app`** inside (not on the `.zip`):
-   ```bash
-   unzip -q ~/Downloads/PocketEmulator-macos.zip -d ~/Downloads
-   xattr -cr ~/Downloads/PocketEmulator.app
-   open ~/Downloads/PocketEmulator.app
-   ```
-   Change paths if you saved the app elsewhere (for example `~/Desktop/PocketEmulator.app`).
-
-2. **System Settings → Privacy & Security** — after a failed open, use **Open Anyway** when macOS lists PocketEmulator.
-
-3. First launch via **Right‑click → Open** on `PocketEmulator.app` instead of double‑clicking.
-
-For a download-safe experience without these steps, the publisher must use **Apple Developer ID signing + notarization** (paid Apple Developer Program).
-
-From Terminal you can confirm the binary runs:
-
-```bash
-dist/PocketEmulator.app/Contents/MacOS/PocketEmulator --menu
-```
-
-### Windows `.exe`
-
-To produce a Windows `.exe`, build on Windows or cross-compile with a Windows target toolchain:
-
-```bash
-rustup target add x86_64-pc-windows-gnu
-cargo build --release --target x86_64-pc-windows-gnu
-```
-
-Output file:
-`target/x86_64-pc-windows-gnu/release/pocketemulator.exe`
-
-## Test ROMs (optional)
-
-Place open-source test ROMs under `roms/tests/` (gitignored). Examples:
-
-- [Blargg’s test ROMs](https://github.com/retrio/gb-test-roms) — `cpu_instrs.gb`, `instr_timing.gb`, …
-- [dmg-acid2](https://github.com/mattcurrie/dmg-acid2) — PPU regression
-
-Run `cargo test` — tests skip automatically if the ROM file is missing.
-
-## Project layout
-
-- `src/cpu/` — SM83 CPU (generated opcode tables in `opcodes_gen.rs` / `cb_gen.rs`)
-- `src/ppu.rs` — LCD timing + scanline renderer
-- `src/cartridge/` — MBC0 / MBC1 / MBC3 / MBC5 + `.sav` loading
-- `src/frontend/desktop/mod.rs` — native game window + HUD + input
-
-Regenerate opcode tables after editing generators:
-
-```bash
-python3 tools/gen_cpu_opcodes.py
-python3 tools/gen_cb.py
-```
+---
 
 ## Legal
 
-You must supply your own ROM dumps. This repository does not include commercial games.
+You must supply your own ROM dumps. This repository does not distribute copyrighted games.
