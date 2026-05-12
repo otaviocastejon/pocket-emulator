@@ -1,5 +1,3 @@
-//! pixels + winit desktop frontend.
-
 mod audio_output;
 mod cheats;
 mod framefx;
@@ -8,10 +6,11 @@ mod media;
 
 use std::collections::VecDeque;
 use std::process::Command;
+use std::time::{Duration, Instant};
 
 use pixels::{Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
-use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
+use winit::event::{ElementState, Event, KeyboardInput, MouseButton, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Icon;
 use winit::window::WindowBuilder;
@@ -29,7 +28,6 @@ use framefx::copy_frame;
 use hud::{clear_hud_strip, draw_controls_hud, framebuffer_height as hud_framebuffer_height};
 use media::{save_screenshot_ppm, screenshot_output_path};
 
-/// Open the ROM library / launcher again (`--menu`), then exit the game window.
 pub(super) fn spawn_launcher_menu_process() {
     if let Ok(exe) = std::env::current_exe() {
         let _ = Command::new(exe).arg("--menu").spawn();
@@ -38,9 +36,10 @@ pub(super) fn spawn_launcher_menu_process() {
 
 const GB_W: u32 = LCD_WIDTH as u32;
 const GB_H: u32 = LCD_HEIGHT as u32;
-/// Includes game + dedicated HUD strip below (controls never overlap gameplay).
 const FB_H: u32 = hud_framebuffer_height();
 const BASE_TITLE: &str = "PocketEmulator";
+/// Max gap between (1) last release and next press of the fast-forward key, or (2) two game-area clicks, to toggle latched fast-forward.
+const FF_LATCH_DOUBLE_TAP_GAP: Duration = Duration::from_millis(450);
 
 pub fn run_window(
     mut gb: GameBoy,
@@ -72,6 +71,11 @@ pub fn run_window(
 
     let cheats = load_cheats(gb.rom_path());
     let mut fast_forward_held = false;
+    let mut fast_forward_latched = false;
+    let mut last_fast_forward_release: Option<Instant> = None;
+    let mut last_game_area_click: Option<Instant> = None;
+    // Latest pointer position in physical pixels (winit 0.28 has no Window::cursor_position).
+    let mut last_cursor_physical: Option<(f32, f32)> = None;
     let mut frames_since_autosave: u32 = 0;
     let mut frames_since_rewind_snapshot: u32 = 0;
     let mut rewind_ram_snapshots: VecDeque<Vec<u8>> = VecDeque::new();
@@ -115,7 +119,8 @@ pub fn run_window(
         };
         match event {
             Event::RedrawRequested(_) => {
-                let frames = if fast_forward_held { 6 } else { 1 };
+                let fast_forward_active = fast_forward_latched || fast_forward_held;
+                let frames = if fast_forward_active { 6 } else { 1 };
                 for _ in 0..frames {
                     gb.run_frame();
                     apply_cheats(&mut gb, &cheats);
@@ -178,7 +183,7 @@ pub fn run_window(
                         GB_W as usize,
                         FB_H as usize,
                         GB_H as usize,
-                        fast_forward_held,
+                        fast_forward_active,
                         rendered_frames,
                         autosave_enabled,
                         &status_line,
@@ -218,6 +223,57 @@ pub fn run_window(
                 let _ = pixels.resize_surface(new_inner_size.width, new_inner_size.height);
             }
             Event::WindowEvent {
+                event: WindowEvent::CursorMoved { position, .. },
+                ..
+            } => {
+                last_cursor_physical = Some((position.x as f32, position.y as f32));
+            }
+            Event::WindowEvent {
+                event: WindowEvent::CursorLeft { .. },
+                ..
+            } => {
+                last_cursor_physical = None;
+            }
+            Event::WindowEvent {
+                event:
+                    WindowEvent::MouseInput {
+                        state,
+                        button,
+                        ..
+                    },
+                ..
+            } => {
+                if state == ElementState::Pressed && button == MouseButton::Left {
+                    if let Some(p) = last_cursor_physical {
+                        match pixels.window_pos_to_pixel(p) {
+                            Ok((_, py)) if py < GB_H as usize => {
+                                let now = Instant::now();
+                                let is_double = last_game_area_click
+                                    .is_some_and(|t| now.duration_since(t) <= FF_LATCH_DOUBLE_TAP_GAP);
+                                if is_double {
+                                    fast_forward_latched = !fast_forward_latched;
+                                    last_game_area_click = None;
+                                    action_toast = Some((
+                                        if fast_forward_latched {
+                                            "Fast-forward latched — double-click game again to stop"
+                                                .to_string()
+                                        } else {
+                                            "Fast-forward unlatched".to_string()
+                                        },
+                                        rendered_frames + 180,
+                                    ));
+                                } else {
+                                    last_game_area_click = Some(now);
+                                }
+                            }
+                            _ => {
+                                last_game_area_click = None;
+                            }
+                        }
+                    }
+                }
+            }
+            Event::WindowEvent {
                 event:
                     WindowEvent::KeyboardInput {
                         input:
@@ -226,6 +282,7 @@ pub fn run_window(
                                 virtual_keycode,
                                 ..
                             },
+                        is_synthetic,
                         ..
                     },
                 ..
@@ -233,7 +290,32 @@ pub fn run_window(
                 let pressed = state == ElementState::Pressed;
                 if let Some(code) = virtual_keycode {
                     if code == controls.fast_forward {
-                        fast_forward_held = pressed;
+                        if pressed {
+                            if !is_synthetic {
+                                let now = Instant::now();
+                                if last_fast_forward_release.is_some_and(|t| {
+                                    now.duration_since(t) <= FF_LATCH_DOUBLE_TAP_GAP
+                                }) {
+                                    fast_forward_latched = !fast_forward_latched;
+                                    last_fast_forward_release = None;
+                                    action_toast = Some((
+                                        if fast_forward_latched {
+                                            "Fast-forward latched — double-tap key again to stop"
+                                                .to_string()
+                                        } else {
+                                            "Fast-forward unlatched".to_string()
+                                        },
+                                        rendered_frames + 180,
+                                    ));
+                                }
+                            }
+                            fast_forward_held = true;
+                        } else {
+                            fast_forward_held = false;
+                            if !is_synthetic {
+                                last_fast_forward_release = Some(Instant::now());
+                            }
+                        }
                     } else if code == controls.a {
                         set_button(pressed, &mut gb, joypad::BTN_A);
                     } else if code == controls.b {

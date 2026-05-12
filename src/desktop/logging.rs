@@ -1,12 +1,7 @@
-//! stderr + rolling log file under the app data directory (`logs/pocketemulator.log`).
-//!
-//! Level/filter: `RUST_LOG` (same as former `env_logger`), default **`info`**.
+//! Rolling log under app data; filter via `RUST_LOG` (default `info`).
 
 use flexi_logger::{Duplicate, FileSpec, Logger};
 
-/// Initialize global logging: mirror to stderr and append to `logs_dir()/pocketemulator.log`.
-///
-/// If no project data directory exists, logs only go to stderr (same as before).
 pub fn init() -> Result<(), Box<dyn std::error::Error>> {
     let _ = pocketemulator::storage::ensure_data_dirs();
 

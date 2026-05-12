@@ -1,4 +1,4 @@
-//! Cartridge header parsing (0x0100–0x014F in ROM).
+//! ROM header @ 0x0100–0x014F.
 
 use thiserror::Error;
 

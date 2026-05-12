@@ -1,4 +1,4 @@
-//! DMG Game Boy emulator core.
+//! Game Boy (DMG/CGB) emulator core.
 
 pub mod apu;
 pub mod bus;

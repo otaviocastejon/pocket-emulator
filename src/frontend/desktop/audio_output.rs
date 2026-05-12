@@ -1,4 +1,4 @@
-//! DMG stereo queue → default output device (cpal).
+//! cpal output queue.
 
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};

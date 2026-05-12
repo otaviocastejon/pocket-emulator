@@ -80,7 +80,6 @@ pub fn import_rom_into_library(rom_path: &Path) -> io::Result<PathBuf> {
     let Some(roms_dir) = library_roms_dir() else {
         return Ok(src);
     };
-    // Compare canonical prefixes so we don't re-copy when e.g. paths differ by `/private` or symlinks.
     let roms_root = roms_dir.canonicalize().unwrap_or_else(|_| roms_dir.clone());
     if src.starts_with(&roms_root) {
         return Ok(src);

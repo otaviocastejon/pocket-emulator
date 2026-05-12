@@ -39,6 +39,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Local-only docs (personal run notes; not committed)
+LOCAL_RUN_GUIDE.md
+
 # IDE / editor local files
 .idea/
 .vscode/

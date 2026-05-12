@@ -1,5 +1,3 @@
-//! Integration tests when ROMs are present under `roms/tests/` (gitignored).
-
 use std::path::PathBuf;
 
 fn rom(name: &str) -> PathBuf {

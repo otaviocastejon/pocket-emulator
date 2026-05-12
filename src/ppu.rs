@@ -91,7 +91,6 @@ impl Ppu {
         } else {
             0usize
         };
-        // CPU access is only routed here for $8000–$9FFF; offset is 0..0x2000 per bank.
         let rel = ((addr.wrapping_sub(0x8000)) as usize) & 0x1FFF;
         bank * 0x2000 + rel
     }
@@ -333,8 +332,6 @@ impl Ppu {
             return;
         }
 
-        // DMG: LCDC.0 clear blanks BG+window (white); LCDC.5 (window) ignored when .0 clear.
-        // CGB: LCDC.0 only changes BG/window vs OBJ priority — BG tiles still render (Pan Docs).
         if !self.cgb_mode && (self.lcdc & 0x01) == 0 && (self.lcdc & 0x21) == 0 {
             for x in 0..LCD_WIDTH {
                 let i = (y * LCD_WIDTH + x) * 4;
@@ -349,7 +346,6 @@ impl Ppu {
         let mut line_bg_idx: [u8; LCD_WIDTH] = [0; LCD_WIDTH];
         let mut line_bg_prio = [false; LCD_WIDTH];
 
-        // Background (on CGB always composited when LCD on; LCDC.0 only affects OBJ priority)
         if bg_pixels_enabled {
             let tile_map_base = if (self.lcdc & 0x08) != 0 {
                 0x1C00
@@ -361,8 +357,6 @@ impl Ppu {
             if self.cgb_mode {
                 for x in 0..LCD_WIDTH {
                     let px = (x as u8).wrapping_add(self.scx);
-                    // Tile map is 32×32; indices wrap (Pan Docs). Keeps map_off ≤ 0x1FFF so
-                    // attribute reads at 0x2000 + map_off stay inside VRAM.
                     let tile_x = (px as u16 / 8) % 32;
                     let tile_y = (py as u16 / 8) % 32;
                     let fine_x = px % 8;
@@ -426,7 +420,6 @@ impl Ppu {
             }
         }
 
-        // Window — DMG ignores window when LCDC.0 clear; CGB still shows it (priority rules differ)
         let window_line_active = (self.lcdc & 0x20) != 0
             && self.ly >= self.wy
             && (self.cgb_mode || (self.lcdc & 0x01) != 0);
@@ -507,7 +500,6 @@ impl Ppu {
             }
         }
 
-        // Sprites
         if (self.lcdc & 0x02) != 0 {
             let h = if (self.lcdc & 0x04) != 0 { 16u8 } else { 8u8 };
             let mut sprites: Vec<usize> = Vec::new();
@@ -574,8 +566,6 @@ impl Ppu {
                     let sx = sx as usize;
                     let bg_ci = line_bg_idx[sx];
                     if self.cgb_mode {
-                        // CGB + LCDC.0 set: respect OAM + BG attribute priority.
-                        // CGB + LCDC.0 clear: OBJ always on top of BG/window (ignore priority bits).
                         if (self.lcdc & 0x01) != 0 {
                             if priority && bg_ci != 0 {
                                 continue;

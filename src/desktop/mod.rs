@@ -1,5 +1,4 @@
-//! Desktop shell: CLI, packaging, panic logging, ROM discovery, and Tauri host API.
-//! Compiled only with the `pocketemulator` binary — not part of the library crate surface.
+//! Binary-only desktop entry (CLI, Tauri, packaging).
 
 pub mod cli;
 pub mod logging;

@@ -7,7 +7,7 @@ use clap::Parser;
 pub struct Args {
     /// Path to a ROM (`.gb` or `.gbc`)
     pub rom: Option<PathBuf>,
-    /// Window scale (integer). Omit on direct ROM launch to use the saved profile; with `--menu`, the launcher defaults to 4.
+    /// Window scale (integer).
     #[arg(long)]
     pub scale: Option<u32>,
     /// Print cartridge header and exit (no window)

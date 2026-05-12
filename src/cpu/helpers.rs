@@ -1,4 +1,4 @@
-//! Opcode helper implementations — cycle counts are **extra M-cycles after opcode fetch**.
+//! Opcode helpers; documented cycles are M-cycles after opcode fetch.
 
 use super::Cpu;
 use crate::bus::Bus;

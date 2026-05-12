@@ -1,29 +1,16 @@
-//! Which console a ROM targets, and what PocketEmulator can run today.
-//!
-//! ## Reality check (roadmap)
-//!
-//! - **DMG (“Game Boy”)** — current core is DMG-first; most `.gb` / dual-mode `.gbc` titles that
-//!   still run on DMG are OK.
-//! - **GBC-only** — ROMs with header flag requiring Color hardware (e.g. Pokémon Crystal) need a
-//!   **CGB mode**: extra VRAM/palettes, speed switch, HDMA, etc. That is **weeks–months** of work on
-//!   top of this codebase, not a toggle.
+//! ROM target classification from cartridge header / extension.
 
 use std::path::Path;
 
-/// High-level target encoded in the ROM or filename.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RomTarget {
-    /// Original Game Boy (and dual-mode carts when run in DMG compatibility).
     DmgCompatible,
-    /// Needs Game Boy Color hardware (CGB flag 0xC0 or equivalent).
     GbcRequired,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LaunchCompatibility {
-    /// Can run with the current DMG-focused core (maybe without accurate Color graphics).
     Supported,
-    /// Recognized but not emulated yet (clear error instead of a broken in-game screen).
     Unsupported { reason: &'static str },
 }
 
@@ -35,9 +22,6 @@ impl RomTarget {
     }
 }
 
-/// Whether [`GameBoy`](crate::gameboy::GameBoy) can run this path (extension + header when needed).
-///
-/// Returns `Err` with a short message for unsupported targets (bad extension, etc.).
 pub fn rom_launch_check(path: &Path) -> Result<(), String> {
     let ext = path
         .extension()
@@ -61,9 +45,7 @@ pub fn rom_launch_check(path: &Path) -> Result<(), String> {
     }
 }
 
-/// Classify using file extension and, when possible, GB cartridge header byte `0x0143`.
 pub fn classify_rom(_path: &Path, rom_prefix: &[u8]) -> RomTarget {
-    // Heuristic: very large “ROM” that isn’t a GB header — don’t try to parse as GB.
     if rom_prefix.len() >= 0x150 {
         if matches!(
             crate::cartridge::CgbSupport::from_header_byte(rom_prefix[0x0143]),

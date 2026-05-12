@@ -15,7 +15,6 @@ pub enum LoadError {
     Cartridge(#[from] CartridgeError),
 }
 
-/// DMG system: CPU + bus (everything hangs off the bus).
 pub struct GameBoy {
     pub cpu: Cpu,
     pub bus: Bus,

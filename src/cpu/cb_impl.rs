@@ -1,5 +1,4 @@
-//! CB-prefixed instruction implementations.
-//! Return value: **extra M-cycles after the CB opcode byte and CB operand byte have been fetched** (2 fetches already counted in `Cpu::step`).
+//! CB-prefix ops; return extra M-cycles after CB+operand fetch (`Cpu::step` counts fetches).
 
 use crate::bus::Bus;
 use crate::cpu::helpers::{get_r8, set_r8};

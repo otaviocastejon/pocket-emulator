@@ -1,5 +1,4 @@
-//! Controls chrome drawn **below** the Game Boy picture (rows `LCD_HEIGHT..`).
-//! The pixel buffer height is `LCD_HEIGHT + HUD_STRIP_HEIGHT` so gameplay is never covered.
+//! HUD strip below the 160×144 game layer (`LCD_HEIGHT..`).
 
 use crate::ppu::LCD_HEIGHT;
 
@@ -13,14 +12,11 @@ const SUCCESS_BG: [u8; 4] = [42, 74, 54, 255];
 const SUCCESS_BORDER: [u8; 4] = [84, 160, 104, 255];
 const WARNING_BG: [u8; 4] = [74, 58, 30, 255];
 const WARNING_BORDER: [u8; 4] = [168, 130, 70, 255];
-/// Fast-forward “on” chip — matches launcher primary pink accent.
 const FF_ACTIVE_BG: [u8; 4] = [200, 55, 115, 255];
 const FF_ACTIVE_FG: [u8; 4] = [255, 245, 248, 255];
 
-/// HUD chrome clips to this width (DMG 160px).
 const HUD_MAX_W: usize = 320;
 
-/// Vertical space reserved under the 160×144 game layer for hints + control bar (px at 1× scale).
 pub const HUD_STRIP_HEIGHT: u32 = 52;
 
 #[inline]
@@ -28,7 +24,6 @@ pub const fn framebuffer_height() -> u32 {
     LCD_HEIGHT as u32 + HUD_STRIP_HEIGHT
 }
 
-/// Paint the HUD strip when controls are hidden (solid bar under the game, no chrome).
 pub fn clear_hud_strip(frame: &mut [u8], width: usize, buffer_height: usize, game_height: usize) {
     if width == 0 || buffer_height <= game_height {
         return;
@@ -68,7 +63,6 @@ pub fn draw_controls_hud(
     let w = width.min(HUD_MAX_W);
     let strip_top = game_height;
 
-    // Control bar sits at the bottom of the buffer; everything above it in the strip is hints/status.
     let bar_h = 34usize.min(buffer_height.saturating_sub(strip_top));
     let bar_y = buffer_height.saturating_sub(bar_h);
     debug_assert!(
@@ -76,7 +70,6 @@ pub fn draw_controls_hud(
         "HUD strip too small — raise HUD_STRIP_HEIGHT"
     );
 
-    // Full chrome background under the game (does not touch gameplay rows).
     fill_rect(
         frame,
         width,
@@ -119,7 +112,6 @@ pub fn draw_controls_hud(
     fill_rect(frame, width, buffer_height, 0, bar_y, w, bar_h, SHELL_BG);
     fill_rect(frame, width, buffer_height, 0, bar_y, w, 1, SHELL_BORDER);
 
-    // Row 1 — fits 160px: [F5 SAVE][F9 LOAD][ESC]
     let r1 = bar_y + 3;
     let chip_h = 11;
     draw_chip(
@@ -165,7 +157,6 @@ pub fn draw_controls_hud(
         shadow,
     );
 
-    // Row 2 — [fast-forward][autosave] only (no overlap with row 1)
     let r2 = bar_y + 3 + chip_h + 2;
     let ff_label = format!("SPC {ff}");
     draw_chip(
@@ -205,7 +196,6 @@ pub fn draw_controls_hud(
         shadow,
     );
 
-    // Short hint above the bar (rotate; uses only glyphs we define)
     let hint = match (rendered_frames / 120) % 4 {
         0 => "F12 SHOT",
         1 => "F2  ROM",
@@ -244,7 +234,6 @@ pub fn draw_controls_hud(
     }
 }
 
-/// Replace unsupported punctuation and force ASCII for the 3×5 font.
 fn hud_ascii(s: &str) -> String {
     s.chars()
         .map(|c| match c {

@@ -1,5 +1,4 @@
-//! Environment variables shared between the launcher child process and the game window.
-//! Prefer `POCKETEMU_*`; `MYGAMEBOY_*` remains supported for backward compatibility.
+//! Child-process env for launcher → game (`POCKETEMU_*`; `MYGAMEBOY_*` aliases).
 
 pub const CONTROLS: (&str, &str) = ("POCKETEMU_CONTROLS", "MYGAMEBOY_CONTROLS");
 pub const AUTOSAVE: (&str, &str) = ("POCKETEMU_AUTOSAVE", "MYGAMEBOY_AUTOSAVE");

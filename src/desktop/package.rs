@@ -37,7 +37,6 @@ pub fn package_current_platform() -> Result<(), Box<dyn std::error::Error>> {
         fs::create_dir_all(&resources_dir)?;
         let app_bin = macos_dir.join("PocketEmulator");
         fs::copy(&src, &app_bin)?;
-        // Icon is always bundled from embedded bytes (never external filesystem dependency).
         let icon_dst = resources_dir.join("icon.png");
         fs::write(&icon_dst, ui_icon::icon_png_bytes())?;
         let icns_path = build_icns_from_embedded_png(&resources_dir)?;
@@ -80,8 +79,6 @@ pub fn package_current_platform() -> Result<(), Box<dyn std::error::Error>> {
 </plist>
 "#;
         fs::write(&plist, plist_contents)?;
-        // Ad-hoc sign the bundle so Finder/Gatekeeper are less likely to refuse launch
-        // ("PocketEmulator can't be opened") on copies without quarantine vs developer ID.
         let sign = Command::new("codesign")
             .args([
                 "--force",
@@ -99,7 +96,6 @@ pub fn package_current_platform() -> Result<(), Box<dyn std::error::Error>> {
             ),
             Err(e) => eprintln!("warning: could not run codesign: {e}"),
         }
-        // Force Finder metadata refresh so icon updates appear immediately.
         let _ = Command::new("touch").arg(&app_dir).status();
         println!("Packaged macOS app bundle: {}", app_dir.display());
     }
@@ -117,7 +113,6 @@ fn build_icns_from_embedded_png(
     }
     fs::create_dir_all(&iconset_dir)?;
 
-    // Apple's expected iconset payload.
     let sizes: &[(u32, &str)] = &[
         (16, "icon_16x16.png"),
         (32, "icon_16x16@2x.png"),
