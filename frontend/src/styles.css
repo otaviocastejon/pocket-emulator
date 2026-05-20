@@ -9,6 +9,22 @@
   --primary: #ff4081;
   --primary-hover: #ff78a8;
   --accent: #7bd283;
+  --degrade-angle: 135deg;
+  --degrade-fill-base: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface-3) 70%, var(--bg) 30%) 0%,
+    color-mix(in srgb, var(--surface-2) 85%, var(--bg) 15%) 100%
+  );
+  --degrade-fill-accent: linear-gradient(
+    var(--degrade-angle),
+    color-mix(in srgb, var(--accent) 26%, transparent) 0%,
+    transparent 48%
+  );
+  --degrade-fill-primary: linear-gradient(
+    var(--degrade-angle),
+    transparent 42%,
+    color-mix(in srgb, var(--primary) 18%, transparent) 100%
+  );
 }
 
 * {
@@ -25,17 +41,41 @@ body,
 body {
   font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   color: var(--fg);
-  background: var(--bg);
+  background:
+    radial-gradient(ellipse 120% 80% at 0% 0%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 50%),
+    radial-gradient(ellipse 90% 60% at 100% 100%, color-mix(in srgb, var(--primary) 10%, transparent), transparent 45%),
+    var(--bg);
+}
+
+.degrade-panel {
+  background: var(--degrade-fill-primary), var(--degrade-fill-accent), var(--degrade-fill-base);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--fg) 7%, transparent);
+}
+
+.degrade-panel-nested {
+  background:
+    linear-gradient(var(--degrade-angle), transparent 30%, color-mix(in srgb, var(--primary) 12%, transparent) 100%),
+    linear-gradient(var(--degrade-angle), color-mix(in srgb, var(--accent) 16%, transparent) 0%, transparent 55%),
+    color-mix(in srgb, var(--surface-3) 45%, var(--surface-2) 55%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--fg) 5%, transparent);
 }
 
 #app {
   display: grid;
   grid-template-columns: 240px 1fr;
   height: 100vh;
+  min-height: 0;
+}
+
+#app > main {
+  min-height: 0;
 }
 
 #sidebar {
-  background: var(--surface);
+  background:
+    var(--degrade-fill-primary),
+    var(--degrade-fill-accent),
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, var(--bg) 8%), var(--surface));
   border-right: 1px solid var(--border);
   padding: 16px 14px;
 }
@@ -63,7 +103,9 @@ body {
 
 .tab:hover,
 .navRow:hover {
-  background: var(--surface-2);
+  background:
+    linear-gradient(var(--degrade-angle), color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
+    var(--surface-2);
   color: var(--fg);
 }
 
@@ -97,16 +139,24 @@ body {
 }
 
 #main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
   padding: 16px;
   overflow: hidden;
+  background:
+    radial-gradient(circle at 92% 0%, color-mix(in srgb, var(--primary) 9%, transparent), transparent 42%),
+    radial-gradient(circle at 0% 100%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 38%);
 }
 
 #header {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 70%, #0f1220 30%), var(--surface-2));
+  flex-shrink: 0;
   border: 1px solid color-mix(in srgb, var(--border) 80%, #fff 20%);
   border-radius: 18px;
   padding: 16px 18px;
-  margin-bottom: 12px;
+  background: var(--degrade-fill-primary), var(--degrade-fill-accent), var(--degrade-fill-base);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--fg) 7%, transparent);
 }
 
 .eyebrow {
@@ -125,16 +175,212 @@ h1 {
 }
 
 #content {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 65%, #0b0d1a 35%), var(--surface-2));
+  flex: 1;
+  min-height: 0;
   border: 1px solid color-mix(in srgb, var(--border) 80%, #fff 20%);
   border-radius: 18px;
   padding: 16px;
-  height: calc(100vh - 140px);
   overflow: auto;
+  background: var(--degrade-fill-primary), var(--degrade-fill-accent), var(--degrade-fill-base);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--fg) 7%, transparent);
 }
 
-.gamesPage {
-  background: radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.04), transparent 45%), var(--surface-2);
+.homePage {
+  background:
+    radial-gradient(circle at 85% 8%, color-mix(in srgb, var(--primary) 14%, transparent), transparent 40%),
+    radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 42%),
+    var(--degrade-fill-primary),
+    var(--degrade-fill-accent),
+    var(--degrade-fill-base);
+}
+
+.homeHero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+}
+
+.homeLogo {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, #fff 20%);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  flex: 0 0 auto;
+}
+
+.homeHeroText {
+  min-width: 0;
+}
+
+.homeEyebrow {
+  margin: 0 0 4px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.homeTitle {
+  margin: 0 0 8px;
+  font-size: 30px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.homeTagline {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+  max-width: 52ch;
+}
+
+.homeOpenSource {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.homeOssBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border) 45%);
+  background:
+    linear-gradient(var(--degrade-angle), color-mix(in srgb, var(--accent) 35%, var(--surface-3)), color-mix(in srgb, var(--surface-3) 90%, var(--bg)));
+  color: color-mix(in srgb, var(--accent) 70%, var(--fg));
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.homeOssLink {
+  color: var(--primary-hover);
+  text-decoration: none;
+}
+
+.homeOssLink:hover {
+  text-decoration: underline;
+}
+
+.homeSection {
+  margin-bottom: 20px;
+}
+
+.homeSectionTitle {
+  margin: 0 0 10px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.homeContinueCard,
+.homeContinueEmpty,
+.homeAbout,
+.gamesList,
+.saveRow,
+.settingsPanel,
+.toast,
+.keybindRow {
+  background:
+    linear-gradient(var(--degrade-angle), transparent 30%, color-mix(in srgb, var(--primary) 12%, transparent) 100%),
+    linear-gradient(var(--degrade-angle), color-mix(in srgb, var(--accent) 16%, transparent) 0%, transparent 55%),
+    color-mix(in srgb, var(--surface-3) 45%, var(--surface-2) 55%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--fg) 5%, transparent);
+}
+
+.homeContinueCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--primary) 45%, var(--border) 55%);
+}
+
+.homeContinueThumb {
+  width: 56px;
+  height: 56px;
+}
+
+.homeContinueBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.homeContinueMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 0;
+}
+
+.homeContinuePlay {
+  flex-shrink: 0;
+}
+
+.homeContinueEmpty {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px dashed color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+.homeAbout {
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+}
+
+.homeSteps {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  color: var(--fg);
+  line-height: 1.55;
+}
+
+.homeSteps li + li {
+  margin-top: 8px;
+}
+
+.homeSteps code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92em;
+  color: #d8d2e8;
+}
+
+.homeNote {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.homeActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.homeSignature {
+  flex: 1 1 100%;
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: right;
+  letter-spacing: 0.02em;
 }
 
 .gamesHero {
@@ -155,9 +401,13 @@ h1 {
 
 .gamesList {
   border: 1px solid color-mix(in srgb, var(--border) 80%, #fff 20%);
-  background: color-mix(in srgb, var(--surface-2) 55%, #0b0d1a 45%);
   border-radius: 18px;
   overflow: hidden;
+}
+
+.gamesEmpty {
+  padding: 24px 18px;
+  text-align: center;
 }
 
 .gameListRow {
@@ -262,6 +512,20 @@ h1 {
   letter-spacing: 0.06em;
 }
 
+.listPlatform--gb {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border) 45%);
+  background:
+    linear-gradient(var(--degrade-angle), color-mix(in srgb, var(--accent) 38%, var(--surface-3)), color-mix(in srgb, var(--surface-3) 88%, var(--bg)));
+  color: color-mix(in srgb, var(--accent) 65%, var(--fg));
+}
+
+.listPlatform--gbc {
+  border-color: color-mix(in srgb, var(--primary) 50%, var(--border) 50%);
+  background:
+    linear-gradient(var(--degrade-angle), color-mix(in srgb, var(--primary) 32%, var(--surface-3)), color-mix(in srgb, var(--surface-3) 85%, var(--bg)));
+  color: color-mix(in srgb, var(--primary-hover) 75%, var(--fg));
+}
+
 .playPill {
   min-width: 96px;
   height: 36px;
@@ -271,7 +535,34 @@ h1 {
 .iconCircle {
   width: 34px;
   height: 34px;
+  min-width: 34px;
+  min-height: 34px;
   border-radius: 999px;
+}
+
+.rowActions .iconCircle.iconBtn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+}
+
+.rowActions .iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  font-size: 15px;
+}
+
+.rowActions .iconBtn:hover {
+  transform: none;
+}
+
+.rowActions .iconBtn .spinner {
+  width: 14px;
+  height: 14px;
 }
 
 .row {
@@ -288,7 +579,9 @@ h1 {
 }
 
 .row.selected {
-  background: color-mix(in srgb, var(--surface-3) 45%, transparent);
+  background:
+    linear-gradient(var(--degrade-angle), color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
+    color-mix(in srgb, var(--surface-3) 50%, transparent);
 }
 
 .tableHead {
@@ -341,7 +634,9 @@ h1 {
 
 .btn-secondary {
   border: 1px solid var(--border);
-  background: #282c3f;
+  background:
+    linear-gradient(var(--degrade-angle), color-mix(in srgb, var(--accent) 12%, transparent), transparent 55%),
+    color-mix(in srgb, var(--surface-3) 70%, var(--surface-2) 30%);
 }
 
 .btn-success {
@@ -377,11 +672,20 @@ h1 {
 
 .iconBtn {
   border: 1px solid var(--border);
-  background: #2a2f42;
+  background:
+    linear-gradient(var(--degrade-angle), color-mix(in srgb, var(--accent) 10%, transparent), transparent 50%),
+    color-mix(in srgb, var(--surface-3) 65%, var(--surface-2) 35%);
   color: var(--fg);
   border-radius: 999px;
   width: 32px;
   height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
@@ -488,7 +792,6 @@ h1 {
 .toast {
   border-radius: 12px;
   border: 1px solid var(--border);
-  background: var(--surface-2);
   color: var(--fg);
   display: flex;
   align-items: flex-start;
@@ -547,7 +850,6 @@ h1 {
   border: 1px solid color-mix(in srgb, var(--border) 80%, #fff 20%);
   border-radius: 14px;
   padding: 12px;
-  background: linear-gradient(180deg, rgba(33, 37, 54, 0.8), rgba(25, 28, 42, 0.8));
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -576,10 +878,6 @@ h1 {
   flex-wrap: wrap;
 }
 
-.settingsPage {
-  background: radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.05), transparent 45%), var(--surface-2);
-}
-
 .settingsHeaderRow {
   display: flex;
   justify-content: space-between;
@@ -605,7 +903,6 @@ h1 {
 .settingsPanel {
   border: 1px solid color-mix(in srgb, var(--border) 80%, #fff 20%);
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(33, 37, 54, 0.78), rgba(25, 28, 42, 0.78));
   padding: 14px;
 }
 
@@ -663,7 +960,9 @@ h1 {
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 2px;
-  background: rgba(44, 42, 57, 0.7);
+  background:
+    linear-gradient(var(--degrade-angle), color-mix(in srgb, var(--accent) 10%, transparent), transparent 55%),
+    color-mix(in srgb, var(--surface-3) 75%, var(--surface-2) 25%);
 }
 
 .segment button {
@@ -714,18 +1013,227 @@ h1 {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  border: 1px solid rgba(84, 79, 96, 0.6);
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
   border-radius: 10px;
   padding: 10px 12px;
-  background: rgba(35, 34, 48, 0.65);
 }
 
 .keyChip {
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: rgba(20, 20, 28, 0.8);
+  background:
+    linear-gradient(var(--degrade-angle), color-mix(in srgb, var(--primary) 14%, var(--surface-3)), var(--surface-3));
   padding: 4px 10px;
   font-size: 12px;
+}
+
+.gbControls {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+}
+
+.gbControlsCaption {
+  margin: 0 0 12px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gbControlsPlate {
+  padding: 18px 16px 14px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, #fff 12%);
+  background:
+    linear-gradient(165deg, color-mix(in srgb, #9aa8a6 22%, var(--surface-3)) 0%, color-mix(in srgb, #5c6368 35%, var(--surface-2)) 100%);
+  box-shadow:
+    inset 0 2px 0 color-mix(in srgb, #fff 12%, transparent),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.35);
+}
+
+.gbControlsLayout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.gbDpad {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  flex-shrink: 0;
+}
+
+.gbDpadBtn {
+  position: absolute;
+  background: linear-gradient(145deg, #4a4a58 0%, #2a2a36 100%);
+  border: 1px solid #1a1a22;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 2px 4px rgba(0, 0, 0, 0.35);
+}
+
+.gbDpad-up {
+  top: 0;
+  left: 30px;
+  width: 32px;
+  height: 28px;
+  border-radius: 8px 8px 3px 3px;
+}
+
+.gbDpad-down {
+  bottom: 0;
+  left: 30px;
+  width: 32px;
+  height: 28px;
+  border-radius: 3px 3px 8px 8px;
+}
+
+.gbDpad-left {
+  top: 30px;
+  left: 0;
+  width: 28px;
+  height: 32px;
+  border-radius: 8px 3px 3px 8px;
+}
+
+.gbDpad-right {
+  top: 30px;
+  right: 0;
+  width: 28px;
+  height: 32px;
+  border-radius: 3px 8px 8px 3px;
+}
+
+.gbDpadCenter {
+  position: absolute;
+  top: 34px;
+  left: 34px;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: #252530;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.gbDpadKey {
+  position: absolute;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--fg) 75%, var(--muted));
+  pointer-events: none;
+}
+
+.gbDpadKey-up {
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.gbDpadKey-down {
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.gbDpadKey-left {
+  left: -4px;
+  top: 50%;
+  transform: translate(-100%, -50%);
+}
+
+.gbDpadKey-right {
+  right: -4px;
+  top: 50%;
+  transform: translate(100%, -50%);
+}
+
+.gbFace {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  padding-right: 4px;
+}
+
+.gbFaceBtnWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.gbBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
+  user-select: none;
+}
+
+.gbBtn-a,
+.gbBtn-b {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  border: 1px solid #4a1838;
+  background: radial-gradient(circle at 32% 28%, #c45a8a 0%, #8b2d5c 42%, #6b2248 100%);
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.28),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.35),
+    0 3px 6px rgba(0, 0, 0, 0.4);
+}
+
+.gbBtn-b {
+  margin-bottom: 10px;
+}
+
+.gbBtn-select,
+.gbBtn-start {
+  width: 52px;
+  height: 14px;
+  border-radius: 7px;
+  border: 1px solid #2a2a34;
+  background: linear-gradient(180deg, #5e5e6e 0%, #3a3a48 55%, #2e2e3a 100%);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.gbMenu {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+}
+
+.gbMenuBtnWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.gbMenuPrinted {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: color-mix(in srgb, #2a2a32 85%, #888 15%);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.gbBtnKey {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  min-width: 2ch;
+  text-align: center;
 }
 
 .settingsActions {

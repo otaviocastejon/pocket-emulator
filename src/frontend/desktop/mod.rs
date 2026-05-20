@@ -28,12 +28,6 @@ use framefx::copy_frame;
 use hud::{clear_hud_strip, draw_controls_hud, framebuffer_height as hud_framebuffer_height};
 use media::{save_screenshot_ppm, screenshot_output_path};
 
-pub(super) fn spawn_launcher_menu_process() {
-    if let Ok(exe) = std::env::current_exe() {
-        let _ = Command::new(exe).arg("--menu").spawn();
-    }
-}
-
 const GB_W: u32 = LCD_WIDTH as u32;
 const GB_H: u32 = LCD_HEIGHT as u32;
 const FB_H: u32 = hud_framebuffer_height();
@@ -235,12 +229,7 @@ pub fn run_window(
                 last_cursor_physical = None;
             }
             Event::WindowEvent {
-                event:
-                    WindowEvent::MouseInput {
-                        state,
-                        button,
-                        ..
-                    },
+                event: WindowEvent::MouseInput { state, button, .. },
                 ..
             } => {
                 if state == ElementState::Pressed && button == MouseButton::Left {
@@ -248,8 +237,9 @@ pub fn run_window(
                         match pixels.window_pos_to_pixel(p) {
                             Ok((_, py)) if py < GB_H as usize => {
                                 let now = Instant::now();
-                                let is_double = last_game_area_click
-                                    .is_some_and(|t| now.duration_since(t) <= FF_LATCH_DOUBLE_TAP_GAP);
+                                let is_double = last_game_area_click.is_some_and(|t| {
+                                    now.duration_since(t) <= FF_LATCH_DOUBLE_TAP_GAP
+                                });
                                 if is_double {
                                     fast_forward_latched = !fast_forward_latched;
                                     last_game_area_click = None;
@@ -410,7 +400,6 @@ pub fn run_window(
                         ));
                     } else if code == VirtualKeyCode::Escape && pressed {
                         let _ = gb.persist_save();
-                        spawn_launcher_menu_process();
                         *control_flow = ControlFlow::Exit;
                     }
                 }

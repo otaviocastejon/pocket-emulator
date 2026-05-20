@@ -138,17 +138,28 @@ impl GameBoy {
     }
 
     /// Advance by `t_cycles` **T-states** (4.19 MHz ticks).
+    fn step_peripherals(&mut self, t_cycles: u32) {
+        let if_ = &mut self.bus.interrupts.if_;
+        self.bus.timer.step(t_cycles, if_);
+        self.bus.ppu.step(t_cycles, if_);
+        for _ in 0..self.bus.ppu.take_hblank_dma_edges() {
+            self.bus.hdma_hblank_step();
+        }
+        self.bus.apu.step(t_cycles);
+    }
+
     pub fn run_t_cycles(&mut self, mut cycles: u32) -> u32 {
         let target = cycles;
         while cycles > 0 {
+            if self.bus.gdma_stall_active() {
+                let stall = self.bus.consume_gdma_stall(cycles);
+                self.step_peripherals(stall);
+                cycles = cycles.saturating_sub(stall);
+                continue;
+            }
             let m = self.cpu.step(&mut self.bus) as u32;
             let t = m * 4;
-            self.bus.timer.step(t, &mut self.bus.interrupts.if_);
-            self.bus.ppu.step(t, &mut self.bus.interrupts.if_);
-            for _ in 0..self.bus.ppu.take_hblank_dma_edges() {
-                self.bus.hdma_hblank_step();
-            }
-            self.bus.apu.step(t);
+            self.step_peripherals(t);
             cycles = cycles.saturating_sub(t);
         }
         target
@@ -156,15 +167,16 @@ impl GameBoy {
 
     /// Run one CPU instruction worth of system time.
     pub fn step_instruction(&mut self) -> u32 {
+        let mut total = 0u32;
+        while self.bus.gdma_stall_active() {
+            let stall = self.bus.consume_gdma_stall(u32::MAX);
+            self.step_peripherals(stall);
+            total = total.saturating_add(stall);
+        }
         let m = self.cpu.step(&mut self.bus) as u32;
         let t = m * 4;
-        self.bus.timer.step(t, &mut self.bus.interrupts.if_);
-        self.bus.ppu.step(t, &mut self.bus.interrupts.if_);
-        for _ in 0..self.bus.ppu.take_hblank_dma_edges() {
-            self.bus.hdma_hblank_step();
-        }
-        self.bus.apu.step(t);
-        t
+        self.step_peripherals(t);
+        total.saturating_add(t)
     }
 
     /// Advance ~one frame (70224 T-states).

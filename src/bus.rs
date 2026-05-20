@@ -33,6 +33,8 @@ pub struct Bus {
     hdma4: u8,
     /// HBlank DMA (FF55 bit 7 set): 16 bytes per visible scanline HBlank, not VBlank.
     hdma: Option<HdmaState>,
+    /// T-cycles to stall the CPU during an in-progress general-purpose VRAM DMA.
+    gdma_stall_t_cycles: u32,
 }
 
 /// Active CGB HBlank DMA (see Pan Docs FF55 bit 7).
@@ -41,6 +43,8 @@ struct HdmaState {
     dst: u16,
     /// 16-byte blocks left to transfer (decremented after each HBlank chunk).
     blocks_remaining: u8,
+    /// VBK (FF4F) latched when the transfer started.
+    vram_bank: u8,
 }
 
 impl Bus {
@@ -70,9 +74,20 @@ impl Bus {
             hdma3: 0,
             hdma4: 0,
             hdma: None,
+            gdma_stall_t_cycles: 0,
         };
         out.serial.configure_link_from_env();
         out
+    }
+
+    pub fn gdma_stall_active(&self) -> bool {
+        self.gdma_stall_t_cycles > 0
+    }
+
+    pub fn consume_gdma_stall(&mut self, t_cycles: u32) -> u32 {
+        let take = t_cycles.min(self.gdma_stall_t_cycles);
+        self.gdma_stall_t_cycles -= take;
+        take
     }
 
     #[inline]
@@ -158,15 +173,17 @@ impl Bus {
         let len = blocks * 0x10;
         let src_base = (((self.hdma1 as u16) << 8) | (self.hdma2 as u16)) & 0xFFF0;
         let dst_base = 0x8000u16 | ((((self.hdma3 as u16) << 8) | (self.hdma4 as u16)) & 0x1FF0);
+        let bank = self.ppu.vram_bank & 1;
         for i in 0..len {
             let dst = dst_base.wrapping_add(i as u16);
-            // Do not wrap writes past $9FFF into low VRAM (that corrupted tilemaps). Skip extras.
             if !(0x8000..=0x9FFF).contains(&dst) {
-                continue;
+                break;
             }
             let b = self.read_dma_source(src_base.wrapping_add(i as u16));
-            self.ppu.write_vram(dst, b);
+            self.ppu.write_vram_dma(dst, b, bank);
         }
+        // Pan Docs: ~8 M-cycles per 16-byte block while the CPU is halted.
+        self.gdma_stall_t_cycles = blocks * 8 * 4;
     }
 
     /// One HBlank HDMA step: copy 16 bytes. Called when PPU signals start of HBlank on LY 0–143.
@@ -183,7 +200,7 @@ impl Bus {
                 return;
             }
             let b = self.read_dma_source(src0.wrapping_add(i));
-            self.ppu.write_vram(dst, b);
+            self.ppu.write_vram_dma(dst, b, h.vram_bank);
         }
         h.src = h.src.wrapping_add(16);
         h.dst = h.dst.wrapping_add(16);
@@ -206,10 +223,22 @@ impl Bus {
     fn read_inner(&mut self, addr: u16) -> u8 {
         match addr {
             0x0000..=0x7FFF => self.cartridge.read_rom(addr),
-            0x8000..=0x9FFF => self.ppu.read_vram(addr),
+            0x8000..=0x9FFF => {
+                if self.ppu.cpu_can_access_vram() {
+                    self.ppu.read_vram(addr)
+                } else {
+                    0xFF
+                }
+            }
             0xA000..=0xBFFF => self.cartridge.read_ram(addr),
             0xC000..=0xFDFF => self.read_wram(addr),
-            0xFE00..=0xFE9F => self.ppu.read_oam(addr),
+            0xFE00..=0xFE9F => {
+                if self.ppu.cpu_can_access_oam() {
+                    self.ppu.read_oam(addr)
+                } else {
+                    0xFF
+                }
+            }
             0xFEA0..=0xFEFF => 0,
             0xFF00 => self.joypad.read(),
             0xFF01 => self.serial.sb,
@@ -297,28 +326,28 @@ impl Bus {
                 }
             }
             0xFF68 => {
-                if self.cgb_mode {
+                if self.cgb_mode && self.ppu.cpu_can_access_cgb_palette() {
                     self.ppu.read_bcps()
                 } else {
                     0xFF
                 }
             }
             0xFF69 => {
-                if self.cgb_mode {
+                if self.cgb_mode && self.ppu.cpu_can_access_cgb_palette() {
                     self.ppu.read_bcpd()
                 } else {
                     0xFF
                 }
             }
             0xFF6A => {
-                if self.cgb_mode {
+                if self.cgb_mode && self.ppu.cpu_can_access_cgb_palette() {
                     self.ppu.read_ocps()
                 } else {
                     0xFF
                 }
             }
             0xFF6B => {
-                if self.cgb_mode {
+                if self.cgb_mode && self.ppu.cpu_can_access_cgb_palette() {
                     self.ppu.read_ocpd()
                 } else {
                     0xFF
@@ -337,10 +366,18 @@ impl Bus {
     fn write_inner(&mut self, addr: u16, v: u8) {
         match addr {
             0x0000..=0x7FFF => self.cartridge.write_rom(addr, v),
-            0x8000..=0x9FFF => self.ppu.write_vram(addr, v),
+            0x8000..=0x9FFF => {
+                if self.ppu.cpu_can_access_vram() {
+                    self.ppu.write_vram(addr, v);
+                }
+            }
             0xA000..=0xBFFF => self.cartridge.write_ram(addr, v),
             0xC000..=0xFDFF => self.write_wram(addr, v),
-            0xFE00..=0xFE9F => self.ppu.write_oam(addr, v),
+            0xFE00..=0xFE9F => {
+                if self.ppu.cpu_can_access_oam() {
+                    self.ppu.write_oam(addr, v);
+                }
+            }
             0xFEA0..=0xFEFF => {}
             0xFF00 => self.joypad.write(v),
             0xFF01 => self.serial.write_sb(v),
@@ -420,6 +457,7 @@ impl Bus {
                         src: src_base,
                         dst: dst_base,
                         blocks_remaining: blocks,
+                        vram_bank: self.ppu.vram_bank & 1,
                     });
                     return;
                 }
@@ -428,22 +466,22 @@ impl Bus {
                 self.run_vram_dma(v);
             }
             0xFF68 => {
-                if self.cgb_mode {
+                if self.cgb_mode && self.ppu.cpu_can_access_cgb_palette() {
                     self.ppu.write_bcps(v);
                 }
             }
             0xFF69 => {
-                if self.cgb_mode {
+                if self.cgb_mode && self.ppu.cpu_can_access_cgb_palette() {
                     self.ppu.write_bcpd(v);
                 }
             }
             0xFF6A => {
-                if self.cgb_mode {
+                if self.cgb_mode && self.ppu.cpu_can_access_cgb_palette() {
                     self.ppu.write_ocps(v);
                 }
             }
             0xFF6B => {
-                if self.cgb_mode {
+                if self.cgb_mode && self.ppu.cpu_can_access_cgb_palette() {
                     self.ppu.write_ocpd(v);
                 }
             }

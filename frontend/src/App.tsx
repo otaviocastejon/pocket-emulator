@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { PageHeader } from "./components/layout/PageHeader";
+import { HomePage } from "./pages/HomePage";
 import { MyGamesPage } from "./pages/MyGamesPage";
 import { SavesPage } from "./pages/SavesPage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -7,7 +8,12 @@ import { GetRomsPage } from "./pages/GetRomsPage";
 import { useLauncherData } from "./hooks/useLauncherData";
 import { useToast } from "./hooks/useToast";
 import { ToastStack } from "./components/feedback/ToastStack";
-import { type TabKey } from "./types/launcher";
+import {
+  filterRomsForTab,
+  isLibraryTab,
+  libraryTabTitle,
+  type TabKey,
+} from "./types/launcher";
 
 export function App() {
   const [activeTab, setActiveTab] = useState<TabKey>("games");
@@ -37,6 +43,9 @@ export function App() {
     deleteSavesForRom,
   } = useLauncherData();
   const { toasts, pushToast, dismiss } = useToast();
+  const isLibraryView = isLibraryTab(activeTab);
+  const displayedRoms = filterRomsForTab(roms, activeTab);
+  const libraryPageTitle = libraryTabTitle(activeTab) ?? "Library";
 
   async function onAddRom() {
     setIsAddingRom(true);
@@ -143,12 +152,27 @@ export function App() {
         </button>
         <div className="sidebarDivider" />
         <div className="sidebarLabel">LIBRARY</div>
-        <div className="navRow navRow-muted static">📁 All ROMs</div>
-        <div className="navRow navRow-muted static">📁 Game Boy</div>
-        <div className="navRow navRow-muted static">📁 Game Boy Color</div>
+        <button
+          className={`navRow navRow-muted ${activeTab === "library-all" ? "active" : ""}`}
+          onClick={() => setActiveTab("library-all")}
+        >
+          📁 All ROMs
+        </button>
+        <button
+          className={`navRow navRow-muted ${activeTab === "library-gb" ? "active" : ""}`}
+          onClick={() => setActiveTab("library-gb")}
+        >
+          📁 Game Boy
+        </button>
+        <button
+          className={`navRow navRow-muted ${activeTab === "library-gbc" ? "active" : ""}`}
+          onClick={() => setActiveTab("library-gbc")}
+        >
+          📁 Game Boy Color
+        </button>
       </aside>
       <main id="main">
-        {activeTab !== "games" ? (
+        {activeTab !== "games" && !isLibraryView ? (
           <PageHeader activeTab={activeTab} romCount={roms.length} savesCount={saveFiles.length} />
         ) : null}
 
@@ -163,8 +187,20 @@ export function App() {
         {loading ? <div className="muted">Loading…</div> : null}
 
         {!loading && activeTab === "games" ? (
-          <MyGamesPage
+          <HomePage
             roms={roms}
+            onAddRom={() => void onAddRom()}
+            onLaunch={(path) => void onLaunch(path)}
+            onBrowseLibrary={() => setActiveTab("library-all")}
+            isAddingRom={isAddingRom}
+            busyLaunchPath={busyLaunchPath}
+          />
+        ) : null}
+
+        {!loading && isLibraryView ? (
+          <MyGamesPage
+            title={libraryPageTitle}
+            roms={displayedRoms}
             onAddRom={() => void onAddRom()}
             onToggleFavorite={(path) => void onToggleFavorite(path)}
             onLaunch={(path) => void onLaunch(path)}

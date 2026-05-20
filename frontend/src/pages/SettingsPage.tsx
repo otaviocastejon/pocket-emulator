@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { RomSummary } from "../types/launcher";
+import { GameBoyControls } from "../components/controls/GameBoyControls";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Spinner } from "../components/ui/Spinner";
@@ -37,7 +38,8 @@ export function SettingsPage({ selectedRom, onSaveSettings, isSaving }: Props) {
     }
   }, [selectedRom]);
 
-  const keybinds: KeybindRow[] = parseControls(selectedRom?.profile.controlsEnv);
+  const controls = parseControlMap(selectedRom?.profile.controlsEnv);
+  const keybinds: KeybindRow[] = controls.rows;
 
   return (
     <Card id="content" className="settingsPage">
@@ -79,16 +81,17 @@ export function SettingsPage({ selectedRom, onSaveSettings, isSaving }: Props) {
               </div>
 
               <div className="settingRow">
-                <div className="settingLabel">Color filter</div>
+                <div>
+                  <div className="settingLabel">Display filter</div>
+                  <div className="muted">Sharp pixels or light smoothing when scaled up</div>
+                </div>
                 <div className="segment">
                   <button className={videoFilter === "Sharp" ? "active" : ""} onClick={() => setVideoFilter("Sharp")} disabled={isSaving}>
-                    Off
+                    Sharp
                   </button>
                   <button className={videoFilter === "Smooth" ? "active" : ""} onClick={() => setVideoFilter("Smooth")} disabled={isSaving}>
-                    DMG
+                    Smooth
                   </button>
-                  <button disabled className="mutedBtn">Pocket</button>
-                  <button disabled className="mutedBtn">Light</button>
                 </div>
               </div>
 
@@ -130,6 +133,13 @@ export function SettingsPage({ selectedRom, onSaveSettings, isSaving }: Props) {
                   </div>
                 ))}
               </div>
+              <GameBoyControls
+                a={controls.a}
+                b={controls.b}
+                start={controls.start}
+                select={controls.select}
+                dpad={controls.dpad}
+              />
             </div>
           </div>
 
@@ -161,21 +171,37 @@ export function SettingsPage({ selectedRom, onSaveSettings, isSaving }: Props) {
   );
 }
 
-function parseControls(env?: string): KeybindRow[] {
+function parseControlMap(env?: string) {
   const defaults = ["X", "Z", "Enter", "Shift", "↑", "↓", "←", "→", "Space"];
   const values = (env ?? "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
   const keys = values.length >= 9 ? values : defaults;
-  return [
-    { label: "A button", value: label(keys[0]) },
-    { label: "B button", value: label(keys[1]) },
-    { label: "Start", value: label(keys[2]) },
-    { label: "Select", value: label(keys[3]) },
-    { label: "Fast forward", value: label(keys[8]) },
-    { label: "Save state", value: "F5" },
-  ];
+  const a = label(keys[0]);
+  const b = label(keys[1]);
+  const start = label(keys[2]);
+  const select = label(keys[3]);
+  return {
+    a,
+    b,
+    start,
+    select,
+    dpad: {
+      up: label(keys[4]),
+      down: label(keys[5]),
+      left: label(keys[6]),
+      right: label(keys[7]),
+    },
+    rows: [
+      { label: "A button", value: a },
+      { label: "B button", value: b },
+      { label: "Start", value: start },
+      { label: "Select", value: select },
+      { label: "Fast forward", value: label(keys[8]) },
+      { label: "Save state", value: "F5" },
+    ],
+  };
 }
 
 function label(s: string): string {

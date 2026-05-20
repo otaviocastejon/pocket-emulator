@@ -121,6 +121,28 @@ impl Ppu {
         self.vram[o] = v;
     }
 
+    /// VRAM DMA (FF51–FF55): writes use the latched bank, not a mid-transfer VBK change.
+    pub fn write_vram_dma(&mut self, addr: u16, v: u8, bank: u8) {
+        let rel = ((addr.wrapping_sub(0x8000)) as usize) & 0x1FFF;
+        let o = ((bank as usize) & 1) * 0x2000 + rel;
+        self.vram[o] = v;
+    }
+
+    /// Pan Docs: CPU reads/writes to VRAM are ignored during Mode 3 (LCD draw).
+    pub fn cpu_can_access_vram(&self) -> bool {
+        !self.lcd_on() || self.mode != 3
+    }
+
+    /// OAM is only CPU-accessible during H-Blank and V-Blank.
+    pub fn cpu_can_access_oam(&self) -> bool {
+        !self.lcd_on() || self.mode == 0 || self.mode == 1
+    }
+
+    /// CGB palette ports (FF68–FF6B) are blocked during Mode 3.
+    pub fn cpu_can_access_cgb_palette(&self) -> bool {
+        !self.cgb_mode || !self.lcd_on() || self.mode != 3
+    }
+
     pub fn read_bcps(&self) -> u8 {
         self.bcps | 0x40
     }

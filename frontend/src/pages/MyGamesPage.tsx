@@ -2,8 +2,16 @@ import type { RomSummary } from "../types/launcher";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Spinner } from "../components/ui/Spinner";
+import {
+  formatRelative,
+  hashPath,
+  thumbGradient,
+  trimTitle,
+  trimTitleWide,
+} from "../lib/romDisplay";
 
 type Props = {
+  title?: string;
   roms: RomSummary[];
   onAddRom: () => void;
   onToggleFavorite: (path: string) => void;
@@ -14,6 +22,7 @@ type Props = {
 };
 
 export function MyGamesPage({
+  title = "My Games",
   roms,
   onAddRom,
   onToggleFavorite,
@@ -28,7 +37,7 @@ export function MyGamesPage({
     <Card id="content" className="gamesPage">
       <div className="gamesHero">
         <div>
-          <h1 className="gamesTitle">My Games</h1>
+          <h1 className="gamesTitle">{title}</h1>
           <p className="muted">{roms.length} ROMS · {totalPlaytime}</p>
         </div>
         <Button onClick={onAddRom} disabled={isAddingRom} className="addRomCta">
@@ -44,18 +53,16 @@ export function MyGamesPage({
       </div>
 
       <div className="gamesList">
+        {roms.length === 0 ? (
+          <p className="muted gamesEmpty">No ROMs in this library yet. Use Add ROM to import one.</p>
+        ) : null}
         {roms.map((rom) => {
           const rel = formatRelative(rom.lastPlayedUnixSecs);
-          const seed = hash(rom.path);
+          const seed = hashPath(rom.path);
           return (
             <article key={rom.path} className="gameListRow">
               <button className="rowMain" onClick={() => onLaunch(rom.path)}>
-                <div
-                  className="thumbCover"
-                  style={{
-                    background: `linear-gradient(135deg, hsl(${seed % 360} 85% 60%), hsl(${(seed + 80) % 360} 70% 38%))`,
-                  }}
-                >
+                <div className="thumbCover" style={{ background: thumbGradient(rom.path) }}>
                   <div className="thumbSpine">GAME BOY</div>
                   <div className="thumbName">{trimTitle(rom.name)}</div>
                 </div>
@@ -66,7 +73,9 @@ export function MyGamesPage({
               </button>
 
               <div className="rowActions">
-                <span className="listPlatform">{rom.extension.toUpperCase()}</span>
+                <span className={`listPlatform listPlatform--${rom.extension}`}>
+                  {rom.extension.toUpperCase()}
+                </span>
                 <Button
                   variant="icon"
                   className="iconCircle"
@@ -96,33 +105,4 @@ export function MyGamesPage({
       </div>
     </Card>
   );
-}
-
-function formatRelative(unix: number | null): string {
-  if (!unix) return "unknown";
-  const now = Math.floor(Date.now() / 1000);
-  const d = Math.max(0, now - unix);
-  if (d < 60) return "just now";
-  if (d < 3600) return `${Math.floor(d / 60)} min ago`;
-  if (d < 86400) return `${Math.floor(d / 3600)} h ago`;
-  if (d < 86400 * 7) return `${Math.floor(d / 86400)} days ago`;
-  return "last week";
-}
-
-function hash(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) {
-    h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  }
-  return h;
-}
-
-function trimTitle(title: string): string {
-  if (title.length <= 18) return title;
-  return `${title.slice(0, 17)}…`;
-}
-
-function trimTitleWide(title: string): string {
-  if (title.length <= 48) return title;
-  return `${title.slice(0, 47)}…`;
 }
